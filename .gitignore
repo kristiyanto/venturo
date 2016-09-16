@@ -1,4 +1,4 @@
-metastore_db
+metastore_db/*
 .ipynb_checkpoints/*
 .DS_Store
 *.log
