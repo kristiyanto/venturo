@@ -3,18 +3,18 @@
 
 import csv
 import random
-from kafka import KafkaProducer
+from kafka import KeyedProducer, KafkaClient
 from datetime import datetime
 import time
 import json
 
 boundaries_file = "boundaries.csv"
 last_uid = 0 
-#kafka = KafkaClient('localhost:9092')
-#producer = KeyedProducer(kafka)
-producer = KafkaProducer(value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+kafka = KafkaClient('localhost:9092')
+producer = KeyedProducer(kafka)
+#producer = KafkaProducer(value_serializer=lambda v: json.dumps(v).encode('utf-8'))
 cab_cap = 2
-
+city = 'NYC'
 
 def loadBoundaries(boundaries_file):
     boundaries = {}
@@ -41,10 +41,9 @@ bound = loadBoundaries(boundaries_file)
 
 
 for n in range(10):
-        driver = generateDriver('NYC')
-        u_json = json.dumps(driver)
-        #driver = json.dumps(driver['driver'])
-        print('sending {}'.format(driver))
-        #producer.send(b'driver', driver, u_json) 
-        producer.send(b'driver', driver) 
-        time.sleep(2)
+    driver = generateDriver(city)
+    u_json = json.dumps(driver).encode('utf-8')
+    key = json.dumps(city).encode('utf-8')
+    print('sending {}'.format(driver))
+    producer.send(b'driver', key, u_json) 
+    time.sleep(2)
