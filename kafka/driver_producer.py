@@ -34,7 +34,7 @@ def generateDriver(city):
     last_uid += 1
     curr_lat = random.uniform(float(bnd[0]), float(bnd[2]))
     curr_long = random.uniform(float(bnd[1]),float(bnd[3])) 
-    return({'driver':last_uid, 'lat': curr_lat, 'long': curr_long, 'ctime': str(datetime.now()),
+    return({'id':last_uid, 'lat': curr_lat, 'long': curr_long, 'ctime': str(datetime.now()),
           'p1':0,'p2':0, 'cap':cab_cap, 'status':'idle'})
 
 bound = loadBoundaries(boundaries_file)
