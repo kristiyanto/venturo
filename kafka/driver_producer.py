@@ -16,6 +16,9 @@ producer = KeyedProducer(kafka)
 cab_cap = 2
 city = 'NYC'
 
+
+
+
 def loadBoundaries(boundaries_file):
     boundaries = {}
     with open(boundaries_file, 'r') as f:
@@ -33,9 +36,21 @@ def generateDriver(city):
     bnd = bound[city]
     last_uid += 1
     curr_lat = random.uniform(float(bnd[0]), float(bnd[2]))
-    curr_long = random.uniform(float(bnd[1]),float(bnd[3])) 
-    return({'id':last_uid, 'lat': curr_lat, 'long': curr_long, 'ctime': str(datetime.now()),
-          'p1':0,'p2':0, 'cap':cab_cap, 'status':'idle'})
+    curr_long = random.uniform(float(bnd[1]),float(bnd[3]))
+    
+    driver_mapping ={ 
+            'id': last_uid,
+            'status': 'idle',
+            'location': [curr_lat, curr_long],
+            'ctime': str(datetime.now()),
+            'p1': None,
+            'p2': None,
+            'destination': None,
+            'alt-dest1': None,
+            'alt-dest2': None
+        }
+
+    return(driver_mapping)
 
 bound = loadBoundaries(boundaries_file)
 
