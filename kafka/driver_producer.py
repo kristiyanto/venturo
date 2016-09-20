@@ -39,6 +39,7 @@ def generateDriver(city):
     curr_long = random.uniform(float(bnd[1]),float(bnd[3]))
     
     driver_mapping ={ 
+            'name': 'driver_{}'.format(last_uid),
             'id': last_uid,
             'status': 'idle',
             'location': [curr_lat, curr_long],
@@ -46,8 +47,11 @@ def generateDriver(city):
             'p1': None,
             'p2': None,
             'destination': None,
-            'alt-dest1': None,
-            'alt-dest2': None
+            'destinationid': None,
+            'altdest1': None,
+            'altdest1id': None,
+            'altdest2': None,
+            'altdest2id': None,
         }
 
     return(driver_mapping)

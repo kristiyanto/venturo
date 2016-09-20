@@ -50,17 +50,21 @@ def generatePassenger(city):
     last_uid += 1
     curr_lat = random.uniform(float(bnd[0]), float(bnd[2]))
     curr_long = random.uniform(float(bnd[1]),float(bnd[3])) 
-    att = random.sample(attract.values(),3)
+    att = random.sample(attract.items(),3)
     pass_mapping = {
+            'name': "passenger_{}".format(last_uid),
             'id': last_uid,
-            'status': 'Wait',
+            'status': 'wait',
             'match': None,                
             'location': [curr_lat, curr_long],
             'ctime': str(datetime.now()),
             'driver': None,
-            'destination': att[0],
-            'alt-dest1': att[1],
-            'alt-dest2': att[2],
+            'destination': att[0][1],
+            'destinationid': att[0][0],
+            'altdest1': att[1][1],
+            'altdest1id': att[1][0],
+            'altdest2': att[2][1],
+            'altdest2id': att[2][0]
           }
     return(pass_mapping)
 
