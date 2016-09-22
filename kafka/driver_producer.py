@@ -59,7 +59,7 @@ def generateDriver(city):
 bound = loadBoundaries(boundaries_file)
 
 
-for n in range(10):
+for n in range(20):
     driver = generateDriver(city)
     u_json = json.dumps(driver).encode('utf-8')
     key = json.dumps(city).encode('utf-8')

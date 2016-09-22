@@ -8,10 +8,74 @@ import os
 import json
 from datetime import datetime
 
-
+#conf = SparkConf().setMaster("local").setAppName("Trip").set("spark.hadoop.validateOutputSpecs", "false")
+#sc = SparkContext(conf = conf)
+#sc = SparkContext("master", "trip")
 sc = SparkContext(appName="trip")
 ssc = StreamingContext(sc, 1)
 es = Elasticsearch([{'host': 'localhost', 'port': 9200}])
+
+#consumer = KafkaConsumer('passenger', group_id = 1)
+#for message in consumer:
+#    message = json.loads(message.value)
+#    print "{}".format(message)
+#    incoming = passenger(message)
+#    incoming.store()
+#    consumer.commit()
+#consumer.close()
+
+
+
+driver_mapping = {
+  'mappings': {
+    'rolling': {
+      'properties': {
+        'id': {'type': 'string'},
+        'status': {'type': 'string'},
+        'location': {'type': 'geo_point', 'lat_lon': 'true'},
+        'ctime': {'type': 'date'},
+        'p1': {'type': 'string'},
+        'p2': {'type': 'string'},
+        'destination': {'type': 'geo_point', 'lat_lon': 'true'},
+        'destinationid':{'type': 'string'},
+        'altdest1': {'type': 'geo_point', 'lat_lon': 'true'},
+        'altdest2id':{'type': 'string'},                
+        'altdest2': {'type': 'geo_point', 'lat_lon': 'true'},
+        'altdest2id':{'type': 'string'},                
+      }
+    }
+  }
+}
+
+
+pass_mapping = {
+  'mappings': {
+    'rolling': {
+      'properties': {
+        'id': {'type': 'string'},
+        'status': {'type': 'string'},
+        'match': {'type': 'string'},                
+        'location': {'type': 'geo_point', 'lat_lon': 'true'},
+        'ctime': {'type': 'date'},
+        'driver': {'type': 'string'},
+        'destination': {'type': 'geo_point', 'lat_lon': 'true'},
+        'destinationid':{'type': 'string'},                
+        'altdest1': {'type': 'geo_point', 'lat_lon': 'true'},
+        'altdestid1':{'type': 'string'},                    
+        'altdest2': {'type': 'geo_point', 'lat_lon': 'true'},
+        'altdestid2':{'type': 'string'},                
+      }
+    }
+  }
+}
+
+
+#es.indices.delete(index='driver', ignore=[400, 404])
+#es.indices.delete(index='passenger', ignore=[400, 404])
+#es.indices.create(index='driver', body=driver_mapping, ignore=400)
+#es.indices.create(index='passenger', body=pass_mapping, ignore=400)
+
+
 class driver(object):
     def __init__(self, *arg, **kwargs):
         for item in arg:
@@ -37,9 +101,26 @@ class driver(object):
         res = es.update(index='driver', doc_type='rolling', id=self.id, body=q)
         return(res['_version'])
     def nearbyPassengers(self):
-        geo_query = geoQuery(d.location, "2km")
-        res = es.search(index='passenger', doc_type='rolling', body=geo_query )
+        geo_query = { "from" : 0, "size" : 3,
+                      "_source":{"include": [ "_id" ]},
+                      "query": {
+                        "filtered": {
+                           "query" : {
+                                "term" : {"status": "wait"}
+                            },
+                            "filter": {
+                                "geo_distance": {
+                                  "distance":      "5km",
+                                  "distance_type": "plane", 
+                                  "location": self.location
+                            }
+                          }
+                        }
+                      }
+                    }
+
         nearby = []
+        res = es.search(index='passenger', doc_type='rolling', body=geo_query )
         for i in (res['hits']['hits']):
             nearby.append(i['_id'])
         return(nearby)
@@ -120,26 +201,7 @@ class passenger(object):
         res = es.update(index='passenger', doc_type='rolling', id=self.id, body=q)
         return(res['_version'])
 
-def geoQuery(location, distance):
-    geo_query = { "from" : 0, "size" : 3,
-                 "_source":{"include": [ "_id" ]},
-                 "query": {
-            "filtered": {
-                "query" : {
-                    "term" : {"status": "wait"}
-                },
-                "filter": {
-                    "geo_distance": {
-                        "distance":      distance,
-                        "distance_type": "plane", 
-                        "location": location
-                                    }
-                           }
-                         }
-                           }
-                }
-
-    return(geo_Query)
+    
 
 def getPassenger(p_id):
     res = es.get(index='passenger', doc_type='rolling', id=p_id, ignore=404)
@@ -181,34 +243,38 @@ def getDriverRecord(id):
         2. If not matched, update current location
 '''
 def pipe(x):
-    d = driver(x)
-    if d.status in ['idle']:
-        if not d.assignPassenger(): d.updateLocation()
-        print(d.jsonFormat())
-
-    elif d.status in ['pickup']:
-        if d.location == d.destination:
-            d.loadPassenger(d.destinationid)
-        else:
-            d.updateLocation()
-
-    elif d.status in ['ontrip']:
-        if d.location == d.destination:
-            d.arrived()
-        else:
-            d.assignPassenger()
-            
+    return(x)
                 
 def main():
-    driver = KafkaUtils.createDirectStream(ssc, ['passenger'], {'metadata.broker.list': 'ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9092'})
-    passenger = KafkaUtils.createDirectStream(ssc, ['driver'], {'metadata.broker.list': 'ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9092'})    
-    driver.pprint()
-    passenger.pprint()
-    d = driver.map(lambda x: json.loads(x))
-    p = passenger.map(lambda x: json.loads(x))    
-    y = d.map(lambda x: pipe(x))
+    message = KafkaUtils.createDirectStream(ssc, ['driver'], {'metadata.broker.list': 'ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9092'})
+    #consumer = KafkaConsumer('passenger', group_id = 1)
+    #consumer.subscribe('driver')
+    #consumer.subscribe('passenger')
+    #consumer = sc.textFile("hdfs://ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9000/data/driver_input.txt")
+    message.pprint()
+    
+    #driver = consumer.filter(lambda q: q.topics == 'driver')
+    #message = consumer.map(lambda x: json.loads(x))
+    #print(consumer)
+    #y = consumer.map(lambda x: pipe(x))
+    #consumer.collect()
+    #consumer.saveAsTextFile('hdfs://ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9000/data/sparkout.txt')
 
-
+    
+                     
+                     
+    #for message in consumer:
+    #    if (message.topic == 'driver'):
+    #        message = json.loads(message.value)
+    #        incoming = passenger(message)
+    #    else:
+    #        message = json.loads(message.value)
+    #        incoming = driver(message)
+    #    print "{}".format(message)
+        
+    #    pipe(incoming)
+    #    consumer.commit()
+    #consumer.close()
     ssc.start()
     ssc.awaitTermination()
 

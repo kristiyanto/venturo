@@ -1,0 +1,52 @@
+
+
+
+driver_mapping = {
+  'mappings': {
+    'rolling': {
+      'properties': {
+        'id': {'type': 'string'},
+        'status': {'type': 'string'},
+        'location': {'type': 'geo_point', 'lat_lon': 'true'},
+        'ctime': {'type': 'date'},
+        'p1': {'type': 'string'},
+        'p2': {'type': 'string'},
+        'destination': {'type': 'geo_point', 'lat_lon': 'true'},
+        'destinationid':{'type': 'string'},
+        'altdest1': {'type': 'geo_point', 'lat_lon': 'true'},
+        'altdest2id':{'type': 'string'},                
+        'altdest2': {'type': 'geo_point', 'lat_lon': 'true'},
+        'altdest2id':{'type': 'string'},                
+      }
+    }
+  }
+}
+
+
+pass_mapping = {
+  'mappings': {
+    'rolling': {
+      'properties': {
+        'id': {'type': 'string'},
+        'status': {'type': 'string'},
+        'match': {'type': 'string'},                
+        'location': {'type': 'geo_point', 'lat_lon': 'true'},
+        'ctime': {'type': 'date'},
+        'driver': {'type': 'string'},
+        'destination': {'type': 'geo_point', 'lat_lon': 'true'},
+        'destinationid':{'type': 'string'},                
+        'altdest1': {'type': 'geo_point', 'lat_lon': 'true'},
+        'altdestid1':{'type': 'string'},                    
+        'altdest2': {'type': 'geo_point', 'lat_lon': 'true'},
+        'altdestid2':{'type': 'string'},                
+      }
+    }
+  }
+}
+
+
+#es.indices.delete(index='driver', ignore=[400, 404])
+#es.indices.delete(index='passenger', ignore=[400, 404])
+#es.indices.create(index='driver', body=driver_mapping, ignore=400)
+#es.indices.create(index='passenger', body=pass_mapping, ignore=400)
+
