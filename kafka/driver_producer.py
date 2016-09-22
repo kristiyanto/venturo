@@ -7,6 +7,7 @@ from kafka import KeyedProducer, KafkaClient
 from datetime import datetime
 import time
 import json
+import random 
 
 boundaries_file = "boundaries.csv"
 last_uid = 0 
@@ -40,7 +41,7 @@ def generateDriver(city):
     
     driver_mapping ={ 
             'name': 'driver_{}'.format(last_uid),
-            'id': last_uid,
+            'id': random.randint(1, 20),
             'status': 'idle',
             'location': [curr_lat, curr_long],
             'ctime': str(datetime.now()),
