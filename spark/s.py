@@ -10,8 +10,9 @@ from datetime import datetime
 
 
 sc = SparkContext(appName="trip")
-ssc = StreamingContext(sc, 1)
-es = Elasticsearch([{'host': 'localhost', 'port': 9200}])
+ssc = StreamingContext(sc, 4)
+#es = Elasticsearch([{'host': 'localhost', 'port': 9200}])
+es = Elasticsearch(['ip-172-31-0-107', 'ip-172-31-0-100', ' ip-172-31-0-105', 'ip-172-31-0-106'], port=9200)
 class driver(object):
     def __init__(self, *arg, **kwargs):
         for item in arg:
@@ -204,8 +205,8 @@ def main():
     passenger = KafkaUtils.createDirectStream(ssc, ['driver'], {'metadata.broker.list': 'ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9092'})    
     driver.pprint()
     passenger.pprint()
-    d = driver.map(lambda x: json.loads(x))
-    p = passenger.map(lambda x: json.loads(x))    
+    d = driver.map(lambda x: json.loads(x.value))
+    p = passenger.map(lambda x: json.loads(x.value))    
     y = d.map(lambda x: pipe(x))
 
 
