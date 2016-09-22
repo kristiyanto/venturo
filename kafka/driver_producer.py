@@ -63,6 +63,6 @@ for n in range(10):
     driver = generateDriver(city)
     u_json = json.dumps(driver).encode('utf-8')
     key = json.dumps(city).encode('utf-8')
-    print('sending {}'.format(driver))
+    print('{}'.format(driver))
     producer.send(b'driver', key, u_json) 
     time.sleep(2)

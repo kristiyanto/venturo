@@ -1,20 +1,20 @@
+from __future__ import print_function
 from elasticsearch import Elasticsearch
 from pyspark import SparkContext
 from pyspark import SparkConf
 from pyspark.streaming import StreamingContext
 from pyspark.streaming.kafka import KafkaUtils
+from kafka import KafkaConsumer
 
 import os
 import json
 from datetime import datetime
 
-conf = SparkConf().setMaster("local").setAppName("Trip")
-sc = SparkContext(conf = conf)
+#conf = SparkConf().setMaster("local").setAppName("Trip").set("spark.hadoop.validateOutputSpecs", "false")
+#sc = SparkContext(conf = conf)
 #sc = SparkContext("master", "trip")
+sc = SparkContext(appName="trip")
 ssc = StreamingContext(sc, 1)
-kvs = KafkaUtils.createStream(ssc, 'localhost:2181', 'spark-streaming-consumer', {'driver': 3, 'passenger':2})
-
-message = kvs.map(lambda x: json.loads(x))
 es = Elasticsearch([{'host': 'localhost', 'port': 9200}])
 
 #consumer = KafkaConsumer('passenger', group_id = 1)
@@ -244,29 +244,44 @@ def getDriverRecord(id):
             2. Send trip info to kafka (for archive)
         2. If not matched, update current location
 '''
-
+def pipe(x):
+    return(x)
+                
 def main():
-    if d.status in ['idle']:
-        if not d.assignPassenger(): d.updateLocation()
-        print(d.jsonFormat())
-        print(p.jsonFormat())
+    message = KafkaUtils.createDirectStream(ssc, ['driver'], {'metadata.broker.list': 'ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9092'})
+    #consumer = KafkaConsumer('passenger', group_id = 1)
+    #consumer.subscribe('driver')
+    #consumer.subscribe('passenger')
+    #consumer = sc.textFile("hdfs://ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9000/data/driver_input.txt")
+    message.pprint()
+    
+    #driver = consumer.filter(lambda q: q.topics == 'driver')
+    #message = consumer.map(lambda x: json.loads(x))
+    #print(consumer)
+    #y = consumer.map(lambda x: pipe(x))
+    #consumer.collect()
+    #consumer.saveAsTextFile('hdfs://ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9000/data/sparkout.txt')
 
-    elif d.status in ['pickup']:
-        if d.location == d.destination:
-            d.loadPassenger(d.destinationid)
-        else:
-            d.updateLocation()
-
-    elif d.status in ['ontrip']:
-        if d.location == d.destination:
-            d.arrived()
-        else:
-            d.assignPassenger()
+    
+                     
+                     
+    #for message in consumer:
+    #    if (message.topic == 'driver'):
+    #        message = json.loads(message.value)
+    #        incoming = passenger(message)
+    #    else:
+    #        message = json.loads(message.value)
+    #        incoming = driver(message)
+    #    print "{}".format(message)
+        
+    #    pipe(incoming)
+    #    consumer.commit()
+    #consumer.close()
     ssc.start()
     ssc.awaitTermination()
 
 if __name__ == '__main__':
-  main()
+    main()
 
 
 
