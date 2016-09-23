@@ -1,8 +1,8 @@
 
-from pyspark import SparkContext
-from pyspark import SparkConf
-from pyspark.streaming import StreamingContext
-from pyspark.streaming.kafka import KafkaUtils
+#from pyspark import SparkContext
+#from pyspark import SparkConf
+#from pyspark.streaming import StreamingContext
+#from pyspark.streaming.kafka import KafkaUtils
 
 from kafka import KafkaConsumer
 from elasticsearch import Elasticsearch
@@ -11,8 +11,8 @@ import json
 from datetime import datetime
 
 
-sc = SparkContext(appName="trip")
-ssc = StreamingContext(sc, 4)
+#sc = SparkContext(appName="trip")
+#ssc = StreamingContext(sc, 4)
 es = Elasticsearch(['ip-172-31-0-107', 'ip-172-31-0-100', ' ip-172-31-0-105', 'ip-172-31-0-106'], port=9200)
 
 class driver(object):
@@ -159,19 +159,20 @@ def updateLocation(self):
     obj_.update()
     return(True)
 
-def arrived(self, p):
-    if self.location == self.location:
-        p.status == 'arrived'
-    if self.p2 != None: 
-        p2 = getPassenger(self.p2)
-        p2.status == 'arrived'
+def arrived(d):
+    p = getPassenger(d.p1)
     d.p1 == None
     d.p2 == None
     d.destination == None
     d.destinationid == None
     d.status == 'idle'
+    p.status = 'arrived'
     self.update()
     p.update()
+    if d.p2: 
+        p2 = getPassenger(d.p2)
+        p2.status == 'arrived'
+        p2.update()
     return(True)
 
 
@@ -196,6 +197,7 @@ def arrived(self, p):
 def pipe(x):
     d = driver(x)
     if d.isKnown():
+        d.update()
         if d.status in ['idle']:
             d.assignPassenger()
         elif d.status in ['pickup']:
@@ -207,39 +209,38 @@ def pipe(x):
 
         elif d.status in ['ontrip']:
             if d.location == d.destination:
-                d.arrived()
-            else:
-                d.assignPassenger()
+                arrived(d)
+            elif not d.p2: d.assignPassenger()
     else:
         d.store()
                 
 def main():
-    driver = KafkaUtils.createDirectStream(ssc, ['passenger'], {'metadata.broker.list': 'ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9092'})
-    passenger = KafkaUtils.createDirectStream(ssc, ['driver'], {'metadata.broker.list': 'ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9092'})    
-    driver.pprint()
-    passenger.pprint()
+    #driver = KafkaUtils.createDirectStream(ssc, ['passenger'], {'metadata.broker.list': 'ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9092'})
+    #passenger = KafkaUtils.createDirectStream(ssc, ['driver'], {'metadata.broker.list': 'ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9092'})    
+    #driver.pprint()
+    #passenger.pprint()
     
 
-    d = driver.map(lambda x: json.loads(x.value))
-    p = passenger.map(lambda x: json.loads(x.value))    
+    #d = driver.map(lambda x: json.loads(x.value))
+    #p = passenger.map(lambda x: json.loads(x.value))    
     
-    y = d.map(lambda x: pipe(x))
+    #y = d.map(lambda x: pipe(x))
     
     
     #
 
-    #consumer = KafkaConsumer('driver', group_id = 1)
-    #for message in consumer:
-    #    d = json.loads(message.value)
-    #    print "{}".format(d)
-    #    y = pipe(d)
-    #    consumer.commit()
-    #consumer.close()
+    consumer = KafkaConsumer('driver', group_id = 1)
+    for message in consumer:
+        d = json.loads(message.value)
+        print "{}".format(d)
+        y = pipe(d)
+        consumer.commit()
+    consumer.close()
 
 
 
-    ssc.start()
-    ssc.awaitTermination()
+    #ssc.start()
+    #ssc.awaitTermination()
 
 if __name__ == '__main__':
     main()

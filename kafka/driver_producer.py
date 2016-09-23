@@ -8,15 +8,20 @@ from datetime import datetime
 import time
 import json
 import random 
+from elasticsearch import Elasticsearch
 
 boundaries_file = "boundaries.csv"
 last_uid = 0 
 kafka = KafkaClient('localhost:9092')
 producer = KeyedProducer(kafka)
-#producer = KafkaProducer(value_serializer=lambda v: json.dumps(v).encode('utf-8'))
-cab_cap = 2
 city = 'NYC'
+total_drivers = 20
+sleep = 2
+step_to_dest = 4
 
+es = Elasticsearch(['ip-172-31-0-107', 'ip-172-31-0-100', \
+                    ' ip-172-31-0-105', 'ip-172-31-0-106'], \
+                   port=9200)
 
 
 
@@ -31,19 +36,29 @@ def loadBoundaries(boundaries_file):
     f.close()
     return boundaries
 
-
+def simulateTrip(id, city):
+    step = 4
+    bnd = bound[city]
+    q = es.get(index='driver', doc_type='rolling', id=id, ignore=[404, 400])
+    if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
+        d = q['_source']['destination']
+        c = q['_source']['location']
+        return [c[0] + ((c[0] - d[0])/step_to_dest), d[1] + ((d[1] - d[1])/step_to_dest)]
+    else:
+        return [random.uniform(float(bnd[0]), float(bnd[2])), \
+                random.uniform(float(bnd[1]),float(bnd[3]))]
+        
+        
 def generateDriver(city):
     global last_uid 
-    bnd = bound[city]
     last_uid += 1
-    curr_lat = random.uniform(float(bnd[0]), float(bnd[2]))
-    curr_long = random.uniform(float(bnd[1]),float(bnd[3]))
+    d_id = random.randint(1, total_drivers)
     
     driver_mapping ={ 
             'name': 'driver_{}'.format(last_uid),
-            'id': random.randint(1, 20),
+            'id': d_id,
             'status': 'idle',
-            'location': [curr_lat, curr_long],
+            'location': simulateTrip(d_id, city),
             'ctime': str(datetime.now()),
             'p1': None,
             'p2': None,
@@ -58,12 +73,10 @@ def generateDriver(city):
     return(driver_mapping)
 
 bound = loadBoundaries(boundaries_file)
-
-
-for n in range(20):
+for n in range(total_drivers):
     driver = generateDriver(city)
     u_json = json.dumps(driver).encode('utf-8')
     key = json.dumps(city).encode('utf-8')
     print('{}'.format(driver))
     producer.send(b'driver', key, u_json) 
-    time.sleep(2)
+    time.sleep(sleep)
