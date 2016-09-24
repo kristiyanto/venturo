@@ -12,12 +12,16 @@ from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from datetime import datetime
 import time
 import json
+import random 
+
+
 
 ### Global 
 boundaries_file = "boundaries.csv"
 tourist_attractions = "destinations.csv"
 kafka = KafkaClient('localhost:9092')
 producer = KeyedProducer(kafka)
+totalPassenger = 100
 
 last_uid = 0
 
@@ -78,10 +82,12 @@ attract = loadTattraction(tourist_attractions)
 
 # Generate users
 
-for n in range(10):
+for n in range(totalPassenger):
         user = generatePassenger('NYC')
-        u_json = json.dumps(user)
-        id = json.dumps(user['id'])
+        u_json = json.dumps(user).encode('utf-8')
+        key = json.dumps(user['id']).encode('utf-8')
         print(u_json)
-        producer.send(b'passenger', id, u_json) 
-        time.sleep(2)
+        producer.send(b'passenger', key, u_json) 
+        #time.sleep(2)
+        
+

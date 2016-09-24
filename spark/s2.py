@@ -1,137 +1,26 @@
 
-#from pyspark import SparkContext
-#from pyspark import SparkConf
-#from pyspark.streaming import StreamingContext
-#from pyspark.streaming.kafka import KafkaUtils
+from pyspark import SparkContext
+from pyspark import SparkConf
+from pyspark.streaming import StreamingContext
+from pyspark.streaming.kafka import KafkaUtils
+import dill as pickle
 
-from kafka import KafkaConsumer
+
+#from kafka import KafkaConsumer
 from elasticsearch import Elasticsearch
 import os
 import json
 from datetime import datetime
 
+cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', ' ip-172-31-0-105', 'ip-172-31-0-106']
+sc = SparkContext(appName="trip")
+ssc = StreamingContext(sc, 3)
 
-#sc = SparkContext(appName="trip")
-#ssc = StreamingContext(sc, 4)
-es = Elasticsearch(['ip-172-31-0-107', 'ip-172-31-0-100', ' ip-172-31-0-105', 'ip-172-31-0-106'], port=9200)
+sc.addPyFile('hdfs://ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9000/data/actors.py')
+from actors import *
 
-class driver(object):
-    def __init__(self, *arg, **kwargs):
-        for item in arg:
-            for key in item:
-                setattr(self, key, item[key])
-        for key in kwargs:
-            setattr(self, key, kwargs[key])
-        try:
-            res = datetime.strptime("{}".format(unicode(self.ctime)), '%Y-%m-%d %H:%M:%S.%f')
-            self.ctime = res.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-        except:
-            pass
-    def jsonFormat(self):
-        return(json.dumps(self.__dict__))
-    def isKnown(self):
-        res = es.get(index='driver', doc_type='rolling', id=self.id, ignore=[404, 400])
-        return(res['found'])
-    def store(self):
-        res = es.create(index='driver', doc_type='rolling', id=self.id, body=self.jsonFormat())
-        return(res['created'])
-    def update(self):
-        q = '{{"doc": {}}}'.format(self.jsonFormat())
-        res = es.update(index='driver', doc_type='rolling', id=self.id, body=q)
-        return(res['_version'])
-    def nearbyPassengers(self):
-        geo_query = geoQuery(self.location, "5km")
-        res = es.search(index='passenger', doc_type='rolling', body=geo_query )
-        nearby = []
-        for i in (res['hits']['hits']):
-            nearby.append(i['_id'])
-        return(nearby)
-    
-    def assignPassenger(self):
-        if len(self.nearbyPassengers())>0: 
-            p = getPassenger(self.nearbyPassengers()[0]) 
-            p.status = 'pickup'
-            self.status = 'pickup'
-            p.driver = self.id
-            self.destination = p.location
-            self.destinationid = p.id
-            p.update()
-            self.update()
-            return True
-        else:
-            return False
 
-    def loadPassenger(self, p):
-        if self.p1 == None: 
-            self.p1 = p.id
-            p.status = 'ontrip'
-            self.status = 'ontrip'
-            
-        elif self.p2 == None:
-            self.p2 = p.id
-            p1 = getPassenger(self.p1)
-            p1.match = p.id
-            p.match = p1.id
-            p1.status = 'match'
-            p.status = 'match'
-            self.status = 'full'
-            p1.update()
-        else:
-            print('Cab is full')
-            return False
-        p.driver = self.id
-        self.destination = p.destination
-        self.destinationid = p.destinationid
-        p.update()
-        self.update()
-        return True
-
-    
-
-class passenger(object):
-    def __init__(self, *arg, **kwargs):
-        for item in arg:
-            for key in item:
-                setattr(self, key, item[key])
-        for key in kwargs:
-            setattr(self, key, kwargs[key])
-        try:
-            res = datetime.strptime("{}".format(unicode(self.ctime)), '%Y-%m-%d %H:%M:%S.%f')
-            self.ctime = res.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-        except:
-            pass
-    def jsonFormat(self):
-        return(json.dumps(self.__dict__))
-    def isKnown(self):
-        res = es.get(index='passenger', doc_type='rolling', id=self.id, ignore=[404, 400])
-        return(res['found'])
-    def store(self):
-        res = es.create(index='passenger', doc_type='rolling', id=self.id, body=self.jsonFormat())
-        return(res['created'])
-    def update(self):
-        q = '{{"doc": {}}}'.format(self.jsonFormat())        
-        res = es.update(index='passenger', doc_type='rolling', id=self.id, body=q)
-        return(res['_version'])
-
-def geoQuery(location, distance):
-    geo_query = { "from" : 0, "size" : 3,
-                 "_source":{"include": [ "_id" ]},
-                 "query": {
-            "filtered": {
-                "query" : {
-                    "term" : {"status": "wait"}
-                },
-                "filter": {
-                    "geo_distance": {
-                        "distance":      distance,
-                        "distance_type": "plane", 
-                        "location": location }
-                           }
-                         }
-                           }
-                }
-
-    return(geo_query)
+es = Elasticsearch(cluster, port=9200)
 
 def getPassenger(p_id):
     res = es.get(index='passenger', doc_type='rolling', id=p_id, ignore=404)
@@ -194,10 +83,11 @@ def arrived(d):
             2. Send trip info to kafka (for archive)
         2. If not matched, update current location
 '''
-def pipe(x):
-    d = driver(x)
+def pipeDriver(x):
+    from actors import passenger, driver
+
+    d = driver(json.loads(x))
     if d.isKnown():
-        d.update()
         if d.status in ['idle']:
             d.assignPassenger()
         elif d.status in ['pickup']:
@@ -210,37 +100,61 @@ def pipe(x):
         elif d.status in ['ontrip']:
             if d.location == d.destination:
                 arrived(d)
-            elif not d.p2: d.assignPassenger()
+            elif not d.p2: 
+                p = getPassenger(d.p1)
+                p.location = d.location
+                self.update()
+                p.update()
+                d.assignPassenger()
+            else:
+                p = getPassenger(d.p1)
+                p.location = d.location
+                p2 = getPassenger(d.p2)
+                p2.location = d.location
+                p.update()
+                p2.update()
+                self.update()
     else:
         d.store()
+
+def pipePassenger(x):
+
+
+    p = passenger(json.loads(x))
+    if not p.isKnown():
+        p.store()
+    return(p.jsonFormat())
+    
                 
 def main():
-    #driver = KafkaUtils.createDirectStream(ssc, ['passenger'], {'metadata.broker.list': 'ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9092'})
-    #passenger = KafkaUtils.createDirectStream(ssc, ['driver'], {'metadata.broker.list': 'ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9092'})    
-    #driver.pprint()
-    #passenger.pprint()
     
+    
+    driver = KafkaUtils.createDirectStream(ssc, ['driver'], {'metadata.broker.list': ','.join(['{}:9092'.format(i) for i in cluster])})
+    passenger = KafkaUtils.createDirectStream(ssc, ['passenger'], {'metadata.broker.list': ','.join(['{}:9092'.format(i) for i in cluster])})                                                                    
+    driver.pprint()
+    passenger.pprint()
 
-    #d = driver.map(lambda x: json.loads(x.value))
-    #p = passenger.map(lambda x: json.loads(x.value))    
     
-    #y = d.map(lambda x: pipe(x))
-    
+    y = driver.map(pipeDriver)
+    z = passenger.map(lambda x: (x, pipePassenger(x)))
+    t = passenger.map(lambda x: pipePassenger(x))
+    #z.count()
     
     #
 
-    consumer = KafkaConsumer('driver', group_id = 1)
-    for message in consumer:
-        d = json.loads(message.value)
-        print "{}".format(d)
-        y = pipe(d)
-        consumer.commit()
-    consumer.close()
+    #consumer = KafkaConsumer('driver', group_id = 1)
+    #for message in consumer:
+    #    d = json.loads(message.value)
+    #    #print "{}".format(d)
+    #    y = pipeDriver(d)
+
+    #    consumer.commit()
+    #consumer.close()
 
 
 
-    #ssc.start()
-    #ssc.awaitTermination()
+    ssc.start()
+    ssc.awaitTermination()
 
 if __name__ == '__main__':
     main()

@@ -15,9 +15,9 @@ last_uid = 0
 kafka = KafkaClient('localhost:9092')
 producer = KeyedProducer(kafka)
 city = 'NYC'
-total_drivers = 20
+total_drivers = 40
 sleep = 2
-step_to_dest = 4
+step_to_dest = 2
 
 es = Elasticsearch(['ip-172-31-0-107', 'ip-172-31-0-100', \
                     ' ip-172-31-0-105', 'ip-172-31-0-106'], \
@@ -53,9 +53,10 @@ def generateDriver(city):
     global last_uid 
     last_uid += 1
     d_id = random.randint(1, total_drivers)
+  
     
     driver_mapping ={ 
-            'name': 'driver_{}'.format(last_uid),
+            'name': 'driver_{}'.format(d_id),
             'id': d_id,
             'status': 'idle',
             'location': simulateTrip(d_id, city),
@@ -70,6 +71,12 @@ def generateDriver(city):
             'altdest2id': None,
         }
 
+    q = es.get(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400])
+    if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
+        driver_mapping['status'] = q['_source']['status']
+        driver_mapping['p1'] = q['_source']['p1']
+        driver_mapping['p2'] = q['_source']['p2']
+        driver_mapping['destination'] = q['_source']['destination']
     return(driver_mapping)
 
 bound = loadBoundaries(boundaries_file)
@@ -79,4 +86,4 @@ for n in range(total_drivers):
     key = json.dumps(city).encode('utf-8')
     print('{}'.format(driver))
     producer.send(b'driver', key, u_json) 
-    time.sleep(sleep)
+    #time.sleep(sleep)
