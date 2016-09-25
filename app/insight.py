@@ -3,7 +3,8 @@ from elasticsearch import Elasticsearch
 from datetime import datetime
 import json
 
-cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', ' ip-172-31-0-105', 'ip-172-31-0-106']
+cluster = ['ec2-52-27-127-152.us-west-2.compute.amazonaws.com', 'ec2-52-26-103-194.us-west-2.compute.amazonaws.com', \
+           'ec2-52-24-208-183.us-west-2.compute.amazonaws.com', 'ec2-52-40-113-83.us-west-2.compute.amazonaws.com']
 
 es = Elasticsearch(cluster, port=9200)
 distance = '5km'
