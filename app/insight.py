@@ -1,12 +1,91 @@
+from kafka import KafkaConsumer, KafkaClient
 from elasticsearch import Elasticsearch
-import os
-import json
 from datetime import datetime
+import json
 
+cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', ' ip-172-31-0-105', 'ip-172-31-0-106']
 
 es = Elasticsearch(cluster, port=9200)
+distance = '5km'
+
+'''
+    Driver:
+    1. Check if timestamp make sense
+    2. Check if driver exists in DB, if doesn't exists, create
+    3. If cab's capacity is not zero, look for nearby requests
+        1. If passenger request matched:
+            1. Change status from idle to on trip (if necessary)
+            2. Re-route / Set destination to passenger
+            3. Save information to ElasticSearch
+        2. If no nearby passenger:
+            1. Update current location
+    4. If cab's capacity is zero:
+        Check if current location matches with destination:
+        1. If matched, empty the cab and mark to idle
+            1. Update number of trip
+            2. Send trip info to kafka (for archive)
+        2. If not matched, update current location
+'''
+def pipeDriver(x):
+    d = driver(x)
+    if d.isKnown():
+        if d.status in ['idle']:
+            d.assignPassenger()
+        elif d.status in ['pickup']:
+            if not d.location == d.destination:
+                d.update()
+            else:
+                p = getPassenger(d.p2) if d.p2 else getPassenger(d.p1)
+                d.loadPassenger(d, p)
+
+        elif d.status in ['ontrip']:
+            if d.location == d.destination:
+                arrived(d)
+            elif not d.p2: 
+                p = getPassenger(d.p1)
+                p.location = d.location
+                self.update()
+                p.update()
+                d.assignPassenger()
+            else:
+                p = getPassenger(d.p1)
+                p.location = d.location
+                p2 = getPassenger(d.p2)
+                p2.location = d.location
+                p.update()
+                p2.update()
+                self.update()
+    else:
+        d.store()
+    return d.jsonFormat()
+
+def pipePassenger(x):
+    p = passenger(x)
+    if not p.isKnown():
+        p.store()
+    return(p.jsonFormat())
+    
+                
+def main():
+
+    kc = KafkaClient(','.join(['{}:9092'.format(i) for i in cluster]), client_id='docker', timeout=120)
+    kafka = KafkaConsumer(kc,
+                          group_id='nyc',
+                          enable_auto_commit=True,
+                          auto_commit_interval_ms= 5000,
+                          auto_offset_reset='smallest')  
+    kafka.subscribe(['driver', 'passenger'])
+
+    for message in kafka:
+        m = json.loads(message.value)
+        res=pipeDriver(m) if message.topic == 'driver' else pipePassenger(m)
+        print res
+        kafka.commit()
+    kafka.close()
 
 
+    
+    
 
 class driver(object):
     def __init__(self, *arg, **kwargs):
@@ -95,8 +174,6 @@ class driver(object):
         self.update()
         return True
 
-    
-
 class passenger(object):
     def __init__(self, *arg, **kwargs):
         for item in arg:
@@ -121,3 +198,51 @@ class passenger(object):
         q = '{{"doc": {}}}'.format(self.jsonFormat())        
         res = es.update(index='passenger', doc_type='rolling', id=self.id, body=q)
         return(res['_version'])
+
+
+def getPassenger(p_id):
+    res = es.get(index='passenger', doc_type='rolling', id=p_id, ignore=404)
+    return(passenger(res['_source'])) if res['found'] else res['found']
+
+def getDriver(p_id):
+    res = es.get(index='driver', doc_type='rolling', id=p_id, ignore=404)
+    return(driver(res['_source'])) if res['found'] else res['found']
+    
+def sanityCheck(driver):
+    if driver.isKnown():
+        driverRecord = getDriverRecord(driver.id)
+        return(driver.time > driverRecord.time)
+    else:
+        return(True)    
+
+def updateLocation(self):
+    if isinstance(self, 'driver'):
+        obj_ = getDriver(self.id)
+    elif isinstance(self, 'passenger'):
+        obj_ = getPassenger(self.id)    
+    else:
+        return(False)
+    obj_.location = self.location
+    obj_.update()
+    return(True)
+
+def arrived(d):
+    p = getPassenger(d.p1)
+    d.p1 == None
+    d.p2 == None
+    d.destination == None
+    d.destinationid == None
+    d.status == 'idle'
+    p.status = 'arrived'
+    self.update()
+    p.update()
+    if d.p2: 
+        p2 = getPassenger(d.p2)
+        p2.status == 'arrived'
+        p2.update()
+    return(True)    
+    
+    
+if __name__ == '__main__':
+    main()
+   

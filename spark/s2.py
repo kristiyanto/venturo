@@ -1,9 +1,9 @@
 
-from pyspark import SparkContext
-from pyspark import SparkConf
-from pyspark.streaming import StreamingContext
-from pyspark.streaming.kafka import KafkaUtils
-import dill as pickle
+#from pyspark import SparkContext
+#from pyspark import SparkConf
+#from pyspark.streaming import StreamingContext
+#from pyspark.streaming.kafka import KafkaUtils
+#import dill as pickle
 
 
 #from kafka import KafkaConsumer
@@ -11,13 +11,13 @@ from elasticsearch import Elasticsearch
 import os
 import json
 from datetime import datetime
+from actors import *
 
 cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', ' ip-172-31-0-105', 'ip-172-31-0-106']
 sc = SparkContext(appName="trip")
 ssc = StreamingContext(sc, 3)
 
-sc.addPyFile('hdfs://ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9000/data/actors.py')
-from actors import *
+#sc.addPyFile('hdfs://ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9000/data/actors.py')
 
 
 es = Elasticsearch(cluster, port=9200)
@@ -84,8 +84,7 @@ def arrived(d):
         2. If not matched, update current location
 '''
 def pipeDriver(x):
-    from actors import passenger, driver
-
+    from actors import driver, passenger
     d = driver(json.loads(x))
     if d.isKnown():
         if d.status in ['idle']:
@@ -118,8 +117,7 @@ def pipeDriver(x):
         d.store()
 
 def pipePassenger(x):
-
-
+    from actors import driver, passenger
     p = passenger(json.loads(x))
     if not p.isKnown():
         p.store()
@@ -129,32 +127,41 @@ def pipePassenger(x):
 def main():
     
     
-    driver = KafkaUtils.createDirectStream(ssc, ['driver'], {'metadata.broker.list': ','.join(['{}:9092'.format(i) for i in cluster])})
-    passenger = KafkaUtils.createDirectStream(ssc, ['passenger'], {'metadata.broker.list': ','.join(['{}:9092'.format(i) for i in cluster])})                                                                    
-    driver.pprint()
-    passenger.pprint()
+    #driver = KafkaUtils.createDirectStream(ssc, ['driver'], {'metadata.broker.list': ','.join(['{}:9092'.format(i) for i in cluster])})
+    #passenger = KafkaUtils.createDirectStream(ssc, ['passenger'], {'metadata.broker.list': ','.join(['{}:9092'.format(i) for i in cluster])})                                                       
+    
+    
+
+    #driver.pprint()
+    #passenger.pprint()
 
     
-    y = driver.map(pipeDriver)
-    z = passenger.map(lambda x: (x, pipePassenger(x)))
-    t = passenger.map(lambda x: pipePassenger(x))
+    #y = driver.map(pipeDriver)
+    #z = passenger.map(lambda x: (x, pipePassenger(x)))
+    #t = passenger.map(lambda x: pipePassenger(x))
     #z.count()
     
-    #
+    #ssc.start()
+    #ssc.awaitTermination()
+    
+    
+    kafka = KafkaConsumer('driver', 'passeger',
+                      group_id='nyc',
+                      auto_commit_enable=True,
+                      auto_commit_interval_ms=30 * 1000,
+                      auto_offset_reset='smallest')    
 
-    #consumer = KafkaConsumer('driver', group_id = 1)
-    #for message in consumer:
+    #consumer = KafkaConsumer('driver', 'passenger', group_id = 1)
+    #for message in kafka:
     #    d = json.loads(message.value)
     #    #print "{}".format(d)
     #    y = pipeDriver(d)
 
-    #    consumer.commit()
+    #    consumer.task_done()
     #consumer.close()
 
 
 
-    ssc.start()
-    ssc.awaitTermination()
 
 if __name__ == '__main__':
     main()
