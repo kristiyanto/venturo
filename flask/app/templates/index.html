@@ -237,13 +237,14 @@
     
     $.getJSON( "stats", function( data ) {
       var items = [];
-      $.each( data, function( key, val ) {
+      $.each(data, function(key, val ) {
             // document.getElementsByTagName("activedriver")[0].innerHTML = key
       });
-      $("#activedriver").html(data);
+      $("#activedriver").html(data.actDrivers);
       // $("#thisisv").html(val);
 
     });
+
 
 
     }        
