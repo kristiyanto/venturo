@@ -238,7 +238,7 @@
     $.getJSON( "stats", function( data ) {
       var items = [];
       $.each( data, function( key, val ) {
-            document.getElementById("activedriver").innerHTML(key);
+            document.getElementsByTagName("p")[0].innerHTML = key
       });
 
     });
