@@ -17,9 +17,22 @@ def map():
 
 @app.route('/stats')
 def getstats():
-    ad = 0 if len(activeDrivers()) < 1 else activeDrivers()
-    ap = 0 if len(activeDrivers()) < 1 else activeDrivers()
-    return json.dumps({"activeDrivers": ad, "activePassengers": ap})
+    drivers = activeDrivers()
+    passenger = activePassengers()
+    
+    dLatLong = []
+
+    if len(drivers['hits']['hits']) < 1:
+        ad = 0
+
+    else:
+        ad = drivers['hits']['total']
+        for i in res['hits']['hits']:
+            dLatLong.append(i['_source']['location'])
+
+
+
+    return json.dumps({"activeDrivers": ad, "activePassengers": dLatLong})
 
 def activeDrivers():
     q = {
@@ -37,7 +50,7 @@ def activeDrivers():
     }
 
     res = es.search(index='driver', doc_type='rolling', body=q, ignore=[404, 400])
-    return res['hits']['hits']
+    return res
 
 def activePass():
     q = {
@@ -55,5 +68,5 @@ def activePass():
     }
 
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
-    return res['hits']['hits']
+    return res
 
