@@ -8,15 +8,17 @@
 
 import csv
 import random
-from kafka import KafkaClient, KeyedProducer, SimpleConsumer
-from datetime import datetime
 import time
 import json
-import random 
 
+from kafka import KafkaClient, KeyedProducer, SimpleConsumer
+from datetime import datetime
+from decimal import *
 
 
 ### Global 
+getcontext().prec=6
+
 boundaries_file = "boundaries.csv"
 tourist_attractions = "destinations.csv"
 kafka = KafkaClient('localhost:9092')
@@ -31,7 +33,7 @@ def loadBoundaries(boundaries_file):
         reader = csv.reader(f, delimiter = ',')
         for row in reader:
             city = row[0]
-            fence = row[1:] 
+            fence = row[1:]
             boundaries.update({city:fence})
     f.close()
     return boundaries
@@ -43,7 +45,7 @@ def loadTattraction(tourist_attractions):
         reader = csv.reader(f, delimiter = ',')
         for row in reader:
             name = row[1]
-            loc = (float(row[2]), float(row[3]))
+            loc = [float(row[2]), float(row[3])]
             attr.update({name:loc})
     f.close()
     return attr
@@ -51,12 +53,12 @@ def loadTattraction(tourist_attractions):
 def generatePassenger(city):
     global last_uid 
     bnd = bound[city]
-    last_uid += 1
-    curr_lat = random.uniform(float(bnd[0]), float(bnd[2]))
-    curr_long = random.uniform(float(bnd[1]),float(bnd[3])) 
+    
+    curr_lat = round(random.uniform(float(bnd[0]), float(bnd[2])),4)
+    curr_long = round(random.uniform(float(bnd[1]), float(bnd[3])),4)
     att = random.sample(attract.items(),3)
     pass_mapping = {
-            'name': "passenger_{}".format(last_uid),
+            'name': "passenger_{}".format(random.randrange(1,totalPassenger)),
             'id': last_uid,
             'status': 'wait',
             'match': None,                
@@ -72,10 +74,13 @@ def generatePassenger(city):
           }
     return(pass_mapping)
 
-#    return{'passenger':last_uid, 'curr_lat': curr_lat, 'curr_long': curr_long, 'curr_time': ,
-#           'dest1': att[0], 'dest2': att[1], 'dest1': att[2]}
-    
+    q = es.get(index='passenger', doc_type='rolling', id=d_id, ignore=[404, 400])
+    if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
+        driver_mapping = q['_source']
+    return(driver_mapping)
 
+
+    
 # Read the boundaries
 bound = loadBoundaries(boundaries_file)
 attract = loadTattraction(tourist_attractions)
