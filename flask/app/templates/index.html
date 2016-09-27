@@ -229,6 +229,18 @@
      function fixTimeFormat(i) {
         return ( i < 10 ) ? "0" + i : i;
      }
+
+
+    for(lyr in mymap._layers) {
+        if(m._layers[lyr]._path != undefined) {
+            try {
+                m.removeLayer(m._layers[lyr]);
+            }
+            catch(e) {
+                console.log("problem with " + e + m._layers[lyr]);
+            }}
+    }
+
      var today = new Date(),
         h = fixTimeFormat(today.getHours()),
         m = fixTimeFormat(today.getMinutes()),
@@ -244,6 +256,8 @@
       $("#actPass").html(data.actPass);
       $("#onRide").html(data.onRide);
       $("#onWait").html(data.onWait);
+
+
       for (var pass = 0; pass < data.pLoc.length; pass++) {
         var circle = L.circle(data.pLoc[pass], 35, {
         color: 'green',
