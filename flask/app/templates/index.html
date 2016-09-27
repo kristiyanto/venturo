@@ -116,8 +116,8 @@
                                     <i class="fa fa-taxi fa-5x"></i>
                                 </div>
                                 <div class="col-xs-9 text-right">
-                                    <div class="huge">26</div>
-                                    <div class=>Total Cabs</div>
+                                    <div class="huge" id="actDrivers">0</div>
+                                    <divclass="clearfix">Total Cabs</div>
                                 </div>
                             </div>
                         </div>
@@ -138,7 +138,7 @@
                                     <i class="fa fa-user fa-5x"></i>
                                 </div>
                                 <div class="col-xs-9 text-right">
-                                    <div class="huge">12</div>
+                                    <div class="huge" id="actPass">0</div>
                                     <div>Total Passengers</div>
                                 </div>
                             </div>
@@ -160,7 +160,7 @@
                                     <i class="fa fa-tachometer fa-5x"></i>
                                 </div>
                                 <div class="col-xs-9 text-right">
-                                    <div class="huge" id="activedriver">124</div>
+                                    <div class="huge" id="onRide">0</div>
                                     <div>On the ride</div>
                                 </div>
                             </div>
@@ -182,7 +182,7 @@
                                     <i class="fa fa-hourglass-start fa-5x"></i>
                                 </div>
                                 <div class="col-xs-9 text-right">
-                                    <div class="huge" id="thisisv">13</div>
+                                    <div class="huge" id="onWait">0</div>
                                     <div>Passengers Waiting</div>
                                 </div>
                             </div>
@@ -240,7 +240,10 @@
       $.each(data, function(key, val ) {
             // document.getElementsByTagName("activedriver")[0].innerHTML = key
       });
-      $("#activedriver").html(data.actDrivers);
+      $("#actDrivers").html(data.actDrivers);
+      $("#actPass").html(data.actPass);
+      $("#onRide").html(data.onRide);
+      $("#onWait").html(data.onWait);
       // $("#thisisv").html(val);
 
     });
