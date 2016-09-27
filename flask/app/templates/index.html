@@ -235,7 +235,7 @@
         s = fixTimeFormat(today.getSeconds());
      document.getElementById("clock").innerHTML = h + ":" + m + ":" + s;
     
-    $.getJSON( "ajax/test.json", function( data ) {
+    $.getJSON( "stats", function( data ) {
       var items = [];
       $.each( data, function( key, val ) {
             document.getElementById("activedriver").innerHTML(key);
