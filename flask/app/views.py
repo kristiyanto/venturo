@@ -19,7 +19,7 @@ def map():
 def getstats():
     ad = 0 if len(activeDrivers()) < 1 else activeDrivers()
     ap = 0 if len(activeDrivers()) < 1 else activeDrivers()
-    return jsonify('activeDrivers': ad, 'activePassengers': ap)
+    return jsonify('activeDrivers'= ad, 'activePassengers'= ap)
 
 def activeDrivers():
     q = {
