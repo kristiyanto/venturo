@@ -235,12 +235,14 @@
         s = fixTimeFormat(today.getSeconds());
      document.getElementById("clock").innerHTML = h + ":" + m + ":" + s;
     
-    $.getJSON('/stats', function(data) {
-        // $'#activedriver'.text(data.result)
-        return data
+    $.getJSON( "ajax/test.json", function( data ) {
+      var items = [];
+      $.each( data, function( key, val ) {
+            document.getElementById("activedriver").innerHTML(key);
+      });
 
     });
-    document.getElementById("activedriver").innerHTML(data)
+
 
     }        
 
