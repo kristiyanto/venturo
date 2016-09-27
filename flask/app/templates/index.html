@@ -182,7 +182,7 @@
                                     <i class="fa fa-hourglass-start fa-5x"></i>
                                 </div>
                                 <div class="col-xs-9 text-right">
-                                    <div class="huge">13</div>
+                                    <div class="huge" id="thisisv">13</div>
                                     <div>Passengers Waiting</div>
                                 </div>
                             </div>
@@ -240,6 +240,7 @@
       $.each( data, function( key, val ) {
             // document.getElementsByTagName("activedriver")[0].innerHTML = key
             $("#activedriver").html(key);
+            $("#thisisv").html(value);
 
       });
 
