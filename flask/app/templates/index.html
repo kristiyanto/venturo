@@ -117,7 +117,7 @@
                                 </div>
                                 <div class="col-xs-9 text-right">
                                     <div class="huge" id="actDrivers">0</div>
-                                    <divclass="clearfix">Total Cabs</div>
+                                    <div class="clearfix">Total Cabs</div>
                                 </div>
                             </div>
                         </div>
@@ -244,7 +244,15 @@
       $("#actPass").html(data.actPass);
       $("#onRide").html(data.onRide);
       $("#onWait").html(data.onWait);
-      // $("#thisisv").html(val);
+      for (var i = 0; i < data.pLoc.length; i++) {
+        var circle = L.circle(data.pLoc[i], 30, {
+        color: 'red',
+        fillColor: 'red',
+        fillOpacity: 0.5
+        }).addTo(mymap);
+
+
+        }
 
     });
 
