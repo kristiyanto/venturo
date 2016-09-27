@@ -18,7 +18,7 @@ def map():
 @app.route('/stats')
 def getstats():
     drivers = activeDrivers()
-    passenger = activePassengers()
+    passenger = activePass()
     
     dLatLong = []
 
