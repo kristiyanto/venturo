@@ -17,7 +17,9 @@ def map():
 
 @app.route('/stats')
 def getstats():
-    return jsonify(activeDrivers(), activePass())
+    ad = 0 if len(activeDrivers()) < 1 else activeDrivers()
+    ap = 0 if len(activeDrivers()) < 1 else activeDrivers()
+    return jsonify('activeDrivers': , 'activePassengers': activePass())
 
 def activeDrivers():
     q = {
@@ -26,7 +28,7 @@ def activeDrivers():
             "filter" : {
                 "range" : {
                     "ctime" : {
-                        "gt"  : "now-2h"
+                        "gt"  : "now-2d"
                     }
                 }
             }
@@ -44,7 +46,7 @@ def activePass():
             "filter" : {
                 "range" : {
                     "ctime" : {
-                        "gt"  : "now-2h"
+                        "gt"  : "now-2d"
                     }
                 }
             }

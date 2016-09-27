@@ -160,7 +160,7 @@
                                     <i class="fa fa-tachometer fa-5x"></i>
                                 </div>
                                 <div class="col-xs-9 text-right">
-                                    <div class="huge">124</div>
+                                    <div class="huge" id="activedriver">124</div>
                                     <div>On the ride</div>
                                 </div>
                             </div>
@@ -224,7 +224,7 @@
     <script src="{{ url_for('static', filename='dist/js/sb-admin-2.js') }}"></script>
     <script src="{{ url_for('static', filename='dist/js/l.js') }}"></script>
     <script type="text/javascript">
-    function anyFunction()
+    function currentTime()
     {
      function fixTimeFormat(i) {
         return ( i < 10 ) ? "0" + i : i;
@@ -234,12 +234,20 @@
         m = fixTimeFormat(today.getMinutes()),
         s = fixTimeFormat(today.getSeconds());
      document.getElementById("clock").innerHTML = h + ":" + m + ":" + s;
-    }        
-
-    $(function () {
-    setInterval(anyFunction, 2000);
+    
+    $.getJSON('/stats', function(data) {
+        $'#activedriver'.text(data.result)
     });
 
+    }        
+
+
+
+
+
+    $(function () {
+    setInterval(currentTime, 2000);
+    });
 
     </script>
 
