@@ -221,6 +221,20 @@
     <script src="{{ url_for('static', filename='dist/js/sb-admin-2.js') }}"></script>
     <script src="{{ url_for('static', filename='dist/js/l.js') }}"></script>
 
+    <script>
+    var circle = L.circle([40.7828, -73.9500], 10, {
+    color: 'red',
+    fillColor: '#f03',
+    fillOpacity: 0.5
+    }).addTo(mymap);
+
+    var circle = L.circle([40.7828, -73.9550], 10, {
+        color: 'green',
+        fillColor: '#f03',
+        fillOpacity: 0.5
+    }).addTo(mymap);
+    </script>
+
 </body>
 
 </html>
