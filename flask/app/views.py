@@ -20,6 +20,8 @@ def map():
 def getstats():
     drivers = activeDrivers()
     passenger = activePass()
+    onWait = waitPass()
+    onRide = ridingPass()
     
     dLatLong = []
     pLatLong = []
@@ -40,45 +42,17 @@ def getstats():
         for i in drivers['hits']['hits']:
             pLatLong.append(i['_source']['location'])
 
-
-
-
-    return json.dumps({'actDrivers': ad, 'dLoc': dLatLong, 'actPass': ap, 'pLoc': pLatLong})
+    return json.dumps({'actDrivers': ad, 'dLoc': dLatLong, 'actPass': ap, \
+        'pLoc': pLatLong, 'onWait': onWait, 'onRide': onRide})
 
 def activeDrivers():
-    q = {
-    'size' : size,
-    'query' : {
-        'constant_score' : {
-            'filter' : {
-                'range' : {
-                    'ctime' : {
-                        'gt'  : window
-                    }
-                }
-            }
-        }
-    }
-    }
+    q = {"filter": {"range": { "ctime": { "gt": window }}}}
 
     res = es.search(index='driver', doc_type='rolling', body=q, ignore=[404, 400])
     return res
 
 def activePass():
-    q = {
-    'size' : size,
-    'query' : {
-        'constant_score' : {
-            'filter' : {
-                'range' : {
-                    'ctime' : {
-                        'gt'  : window
-                    }
-                }
-            }
-        }
-    }
-    }
+    q = {"filter": {"range": { "ctime": { "gt": window }}}}
 
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
     return res
@@ -90,15 +64,15 @@ def waitPass():
             }
         }
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
-    return res
+    return res['hits']["total"]
 
-def onRide():
+def ridingPass():
     q = {
     'query': { 'term': {'status': 'ontrip'} },
     'filter': {'range': { 'ctime': { 'gt': window }} 
         }
     }
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
-    return res
+    return res['hits']["total"]
 
 
