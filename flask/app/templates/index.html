@@ -245,13 +245,19 @@
       $("#onRide").html(data.onRide);
       $("#onWait").html(data.onWait);
       for (var i = 0; i < data.pLoc.length; i++) {
-        var circle = L.circle(data.pLoc[i], 30, {
-        color: 'red',
-        fillColor: 'red',
+        var circle = L.circle(data.pLoc[i], 35, {
+        color: 'green',
+        fillColor: 'green',
         fillOpacity: 0.5
         }).addTo(mymap);
+        }
 
-
+      for (var i = 0; i < data.dLoc.length; i++) {
+        var circle = L.circle(data.dLoc[i], 35, {
+        color: 'blue',
+        fillColor: 'blue',
+        fillOpacity: 0.5
+        }).addTo(mymap);
         }
 
     });
