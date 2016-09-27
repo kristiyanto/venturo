@@ -27,7 +27,7 @@ def getstats():
 
     else:
         ad = drivers['hits']['total']
-        for i in res['hits']['hits']:
+        for i in drivers['hits']['hits']:
             dLatLong.append(i['_source']['location'])
 
 
