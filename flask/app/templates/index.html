@@ -232,12 +232,12 @@
 
 
     for(lyr in mymap._layers) {
-        if(m._layers[lyr]._path != undefined) {
+        if(mymap._layers[lyr]._path != undefined) {
             try {
-                m.removeLayer(m._layers[lyr]);
+                mymap.removeLayer(mymap._layers[lyr]);
             }
             catch(e) {
-                console.log("problem with " + e + m._layers[lyr]);
+                console.log("problem with " + e + mymap._layers[lyr]);
             }}
     }
 
