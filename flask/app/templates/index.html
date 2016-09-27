@@ -237,8 +237,10 @@
     
     $.getJSON('/stats', function(data) {
         // $'#activedriver'.text(data.result)
-        document.getElementById("activedriver").innerHTML(data.result)
+        return data
+
     });
+    document.getElementById("activedriver").innerHTML(data.result)
 
     }        
 
