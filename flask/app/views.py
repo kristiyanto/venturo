@@ -1,5 +1,5 @@
 from app import app
-from flask import render_template, jsonify
+from flask import render_template, json
 from elasticsearch import Elasticsearch
 
 cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', ' ip-172-31-0-105', 'ip-172-31-0-106']
@@ -19,7 +19,7 @@ def map():
 def getstats():
     ad = 0 if len(activeDrivers()) < 1 else activeDrivers()
     ap = 0 if len(activeDrivers()) < 1 else activeDrivers()
-    return jsonify('activeDrivers'= ad, 'activePassengers'= ap)
+    return json.dumps({"activeDrivers": ad, "activePassengers": ap})
 
 def activeDrivers():
     q = {
