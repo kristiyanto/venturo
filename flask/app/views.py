@@ -15,7 +15,7 @@ def index():
 def map():
     return render_template("index.html")
 
-@app.rout('/stats')
+@app.route('/stats')
 def getstats():
     return jsonify(activeDrivers(), activePass())
 
