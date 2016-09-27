@@ -5,7 +5,7 @@ from elasticsearch import Elasticsearch
 cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
 es = Elasticsearch(cluster, port=9200)
 size = 200
-window = 'now-5d'
+window = 'now-2h'
 
 @app.route('/')
 @app.route('/index')
