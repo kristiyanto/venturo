@@ -6,6 +6,6 @@ from flask import render_template
 def index():
     return "Hello, World!"
 @app.route('/map')
-def index():
+def map():
     return render_template("index.html")
 
