@@ -46,16 +46,17 @@ def getstats():
         'pLoc': pLatLong, 'onWait': onWait, 'onRide': onRide})
 
 def activeDrivers():
-    q = {"filter": {"range": { "ctime": { "gt": window }}}}
+    q = {"size": size, "filter": {"range": { "ctime": { "gt": window }}}}
 
     res = es.search(index='driver', doc_type='rolling', body=q, ignore=[404, 400])
     return res
 
 def activePass():
-    q = {"filter": {"range": { "ctime": { "gt": window }}}}
+    q = {"size": size, "filter": {"range": { "ctime": { "gt": window }}}}
 
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
     return res
+
 def waitPass():
 
     q = {
