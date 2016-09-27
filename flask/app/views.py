@@ -38,8 +38,8 @@ def getstats():
         ap = 0
 
     else:
-        ap = drivers['hits']['total']
-        for i in drivers['hits']['hits']:
+        ap = passenger['hits']['total']
+        for i in passenger['hits']['hits']:
             pLatLong.append(i['_source']['location'])
 
     return json.dumps({'actDrivers': ad, 'dLoc': dLatLong, 'actPass': ap, \
