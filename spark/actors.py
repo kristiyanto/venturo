@@ -3,6 +3,7 @@ import os
 import json
 from datetime import datetime
 
+cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', ' ip-172-31-0-105', 'ip-172-31-0-106']
 
 es = Elasticsearch(cluster, port=9200)
 
@@ -95,6 +96,7 @@ class driver(object):
         self.update()
         return True
 
+
     
 
 class passenger(object):
@@ -121,3 +123,4 @@ class passenger(object):
         q = '{{"doc": {}}}'.format(self.jsonFormat())        
         res = es.update(index='passenger', doc_type='rolling', id=self.id, body=q)
         return(res['_version'])
+
