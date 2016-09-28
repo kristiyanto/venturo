@@ -17,7 +17,7 @@ boundaries_file = "boundaries.csv"
 kafka = KafkaClient('localhost:9092')
 producer = KeyedProducer(kafka)
 city = 'NYC'
-total_drivers = 100
+total_drivers = 10
 sleep = 2
 step_to_dest = random.randrange(1,2)
 
@@ -68,6 +68,7 @@ def generateDriver(city):
             'altdest1id': None,
             'altdest2': None,
             'altdest2id': None,
+            'origin': None,
         }
 
     q = es.get(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400])

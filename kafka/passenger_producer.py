@@ -52,6 +52,7 @@ def loadTattraction(tourist_attractions):
 
 def generatePassenger(city):
     global last_uid 
+    last_uid += 1
     bnd = bound[city]
     
     curr_lat = round(random.uniform(float(bnd[0]), float(bnd[2])),4)
@@ -70,7 +71,8 @@ def generatePassenger(city):
             'altdest1': att[1][1],
             'altdest1id': att[1][0],
             'altdest2': att[2][1],
-            'altdest2id': att[2][0]
+            'altdest2id': att[2][0],
+            'origin': [curr_lat, curr_long],
           }
     return(pass_mapping)
 
