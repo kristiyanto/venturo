@@ -1,0 +1,12 @@
+#mapid { height: 480px; width: 100%;}
+#map { height: 280px; }
+
+.modal {
+  visibility: hidden;
+  display: block;
+}
+
+.modal[aria-hidden='false'] {
+  visibility: visible;
+  display: block;
+}
