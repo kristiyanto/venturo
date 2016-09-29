@@ -86,5 +86,5 @@ for n in range(total_drivers):
     u_json = json.dumps(driver).encode('utf-8')
     key = json.dumps(driver['id']).encode('utf-8')
     print('{}'.format(driver))
-    producer.send(b'driver', key, u_json) 
+    producer.send(b'drv', key, u_json) 
     #time.sleep(sleep)
