@@ -17,7 +17,7 @@ boundaries_file = "boundaries.csv"
 kafka = KafkaClient('localhost:9092')
 producer = KeyedProducer(kafka)
 city = 'NYC'
-total_drivers = 10
+total_drivers = 150
 sleep = 2
 step_to_dest = random.randrange(1,2)
 
