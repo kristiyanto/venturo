@@ -84,7 +84,7 @@ bound = loadBoundaries(boundaries_file)
 for n in range(total_drivers):
     driver = generateDriver(city)
     u_json = json.dumps(driver).encode('utf-8')
-    key = json.dumps(city).encode('utf-8')
+    key = json.dumps(driver['id']).encode('utf-8')
     print('{}'.format(driver))
     producer.send(b'driver', key, u_json) 
     #time.sleep(sleep)

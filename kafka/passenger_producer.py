@@ -79,6 +79,7 @@ def generatePassenger(city):
     q = es.get(index='passenger', doc_type='rolling', id=d_id, ignore=[404, 400])
     if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
         driver_mapping = q['_source']
+        driver_mapping['ctime'] = str(datetime.now())
     return(driver_mapping)
 
 
