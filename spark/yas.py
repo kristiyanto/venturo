@@ -75,6 +75,56 @@ def assign(x):
     res = nearby(ctime, location, driver, name, p1, p2)
     return res
 
+
+def onride(x):
+    ctime = x['ctime']
+    location = x['location']
+    driver = x['id']
+    name = x['name']
+    p1 = x['p1']
+    p2 = x['p2']
+    dest = x['destination']
+    try:
+        tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
+        ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    except:
+        pass
+    
+    def arrived(ctime, location, dest, driver, name, p1=None, p2=None):
+        cluster = 'ec2-52-27-127-152.us-west-2.compute.amazonaws.com'
+        es = Elasticsearch(cluster, port=9200)
+        if (vincenty(Point(location), Point(dest)).meters < 300):
+            doc = {"status": "arrived", "ctime": ctime, "location": location,\
+                  "destination": None, "destinationid": None, "p1": None, \
+                  "p2": None}
+            doc = json.dumps(doc)
+            q = '{{"doc": {}}}'.format(doc)
+            res = es.update(index='driver', doc_type='rolling', id=driver, \
+                            body=q)
+            
+            newLoc = [round(location[0] - 0.0001,4), round(location[1] - 0.0001,4)]
+            newLoc_ = [round(location[0] + 0.0001,4), round(location[1] + 0.0001,4)]
+
+            doc = {"status": "arrived", "ctime": ctime, "location": newLoc}
+            doc_ = {"status": "arrived", "ctime": ctime, "location": newLoc_}
+            
+            doc = json.dumps(doc)
+            doc_ = json.dumps(doc_)
+            
+            q = '{{"doc": {}}}'.format(doc)
+            q_ = '{{"doc": {}}}'.format(doc_)
+            
+            res = es.update(index='passenger', doc_type='rolling', id=p1, \
+                            body=q)
+            if p2:
+                res = es.update(index='passenger', doc_type='rolling', id=p2, \
+                            body=q_)
+                
+                
+            
+
+        
+
 def pickup(x):
     ctime = x['ctime']
     location = x['location']
@@ -174,11 +224,16 @@ def main():
     D = driver.map(lambda x: json.loads(x[1]))
     idle = D.filter(lambda x: x['status']=='idle').map(assign)
     pick = D.filter(lambda x: x['status']=='pickup').map(pickup)
+    secondPsg = D.filter(lambda x: x['status']=='onride').filter(lambda x: x['p2'] is None).map(assign)
+    riding = D.filter(lambda x: x['status']=='onride').map(onride)
     P = passenger.map(lambda x: json.loads(x[1])).map(updatePass)
     
-    pick.pprint()
-    P.pprint()
+    
     idle.pprint()
+    pick.pprint()
+    secondPsg.pprint()
+    riding.pprint()
+    P.pprint()
     
     ssc.start()
     ssc.awaitTermination()
