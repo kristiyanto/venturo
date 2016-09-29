@@ -14,15 +14,20 @@ from elasticsearch import Elasticsearch
 
 getcontext().prec=6
 boundaries_file = "boundaries.csv"
-kafka = KafkaClient('localhost:9092')
-producer = KeyedProducer(kafka)
+
+
 city = 'NYC'
-total_drivers = 150
+total_drivers = 50
 sleep = 2
 step_to_dest = random.randrange(1,2)
 
-es = Elasticsearch(['ip-172-31-0-107', 'ip-172-31-0-100', \
-                    ' ip-172-31-0-105', 'ip-172-31-0-106'], \
+cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', \
+                    ' ip-172-31-0-105', 'ip-172-31-0-106']
+brokers = ','.join(['{}:9092'.format(i) for i in cluster])
+
+kafka = KafkaClient(brokers)
+producer = KeyedProducer(kafka)
+es = Elasticsearch(cluster, \
                    port=9200)
 
 
@@ -86,5 +91,5 @@ for n in range(total_drivers):
     u_json = json.dumps(driver).encode('utf-8')
     key = json.dumps(driver['id']).encode('utf-8')
     print('{}'.format(driver))
-    producer.send(b'driver', key, u_json) 
-    #time.sleep(sleep)
+    producer.send(b'driver', key, u_json)
+kafka.close()

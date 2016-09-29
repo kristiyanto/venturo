@@ -262,12 +262,12 @@
         var circle = L.circle(data.pLoc[pass], 35, {
         color: 'green',
         fillColor: 'green',
-        fillOpacity: 0.5
+        fillOpacity: 0.3
         }).addTo(mymap);
         }
 
       for (var drv = 0; drv < data.dLoc.length; drv++) {
-        var circle = L.circle(data.dLoc[drv], 35, {
+        var circle = L.circle(data.dLoc[drv], 10, {
         color: 'blue',
         fillColor: 'blue',
         fillOpacity: 0.5
@@ -276,12 +276,7 @@
 
     });
 
-
-
     }        
-
-
-
 
 
     $(function () {
