@@ -23,7 +23,7 @@ boundaries_file = "boundaries.csv"
 tourist_attractions = "destinations.csv"
 kafka = KafkaClient('localhost:9092')
 producer = KeyedProducer(kafka)
-totalPassenger = 100
+totalPassenger = 2
 
 last_uid = 0
 
