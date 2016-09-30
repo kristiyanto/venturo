@@ -12,20 +12,25 @@ from kafka import KeyedProducer, KafkaClient
 from datetime import datetime
 from elasticsearch import Elasticsearch
 
-getcontext().prec=6
+
+'''
+        Set the geographical boundaries and other variables
+'''
 boundaries_file = "boundaries.csv"
-
-
 city = 'NYC'
+
+
 total_drivers = 50
-sleep = 2
-step_to_dest = random.randrange(1,2)
+getcontext().prec=6
+
+step_to_dest = random.randrange(1,3)
+
 
 cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', \
                     ' ip-172-31-0-105', 'ip-172-31-0-106']
-brokers = ','.join(['{}:9092'.format(i) for i in cluster])
 
-kafka = KafkaClient(brokers)
+
+kafka = KafkaClient("ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9092")
 producer = KeyedProducer(kafka)
 es = Elasticsearch(cluster, \
                    port=9200)
