@@ -22,15 +22,13 @@ city = 'NYC'
 
 total_drivers = 50
 getcontext().prec=6
-
 step_to_dest = random.randrange(1,3)
-
 
 cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', \
                     ' ip-172-31-0-105', 'ip-172-31-0-106']
 
-
-kafka = KafkaClient("ec2-52-27-127-152.us-west-2.compute.amazonaws.com:9092")
+brokers = ','.join(['{}:9092'.format(i) for i in cluster])
+kafka = KafkaClient(brokers)
 producer = KeyedProducer(kafka)
 es = Elasticsearch(cluster, \
                    port=9200)
@@ -38,6 +36,7 @@ es = Elasticsearch(cluster, \
 
 
 def loadBoundaries(boundaries_file):
+
     boundaries = {}
     with open(boundaries_file, 'r') as f:
         reader = csv.reader(f, delimiter = ',')
@@ -96,5 +95,5 @@ for n in range(total_drivers):
     u_json = json.dumps(driver).encode('utf-8')
     key = json.dumps(driver['id']).encode('utf-8')
     print('{}'.format(driver))
-    producer.send(b'driver', key, u_json)
+    producer.send(b'drv', key, u_json)
 kafka.close()
