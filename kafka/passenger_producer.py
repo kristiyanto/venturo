@@ -95,7 +95,7 @@ for n in range(totalPassenger):
         u_json = json.dumps(user).encode('utf-8')
         key = json.dumps(user['id']).encode('utf-8')
         print(u_json)
-        producer.send(b'passenger', key, u_json) 
+        producer.send(b'psg', key, u_json) 
         #time.sleep(2)
         
 

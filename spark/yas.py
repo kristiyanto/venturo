@@ -11,7 +11,7 @@ from geopy.distance import vincenty, Point
 
 
 sc = SparkContext(appName="trip")
-ssc = StreamingContext(sc, 3)
+ssc = StreamingContext(sc, 1)
 sc.setLogLevel("WARN")
 
 def assign(x):
@@ -91,7 +91,7 @@ def onride(x):
         pass
     
     def arrived(ctime, location, dest, driver, name, p1=None, p2=None):
-        cluster = 'ec2-52-27-127-152.us-west-2.compute.amazonaws.com'
+        cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
         es = Elasticsearch(cluster, port=9200)
         if (vincenty(Point(location), Point(dest)).meters < 300):
             doc = {"status": "arrived", "ctime": ctime, "location": location,\
@@ -215,9 +215,9 @@ def main():
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
     es = Elasticsearch(cluster, port=9200)
     brokers = ','.join(['{}:9092'.format(i) for i in cluster])
-    driver = KafkaUtils.createDirectStream(ssc, ['driver'], {'metadata.broker.list':brokers})
+    driver = KafkaUtils.createDirectStream(ssc, ['drv'], {'metadata.broker.list':brokers})
 
-    passenger = KafkaUtils.createDirectStream(ssc, ['passenger'], {'metadata.broker.list': brokers})                                                       
+    passenger = KafkaUtils.createDirectStream(ssc, ['psg'], {'metadata.broker.list': brokers})                                                       
 
     #driver = KafkaUtils.createDirectStream(ssc, ['driver'], {'metadata.broker.list': 'localhost:9092'})
     
