@@ -28,6 +28,7 @@ cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', \
                     ' ip-172-31-0-105', 'ip-172-31-0-106']
 
 brokers = ','.join(['{}:9092'.format(i) for i in cluster])
+brokers = 'localhost:9092'
 kafka = KafkaClient(brokers)
 producer = KeyedProducer(kafka)
 es = Elasticsearch(cluster, \
