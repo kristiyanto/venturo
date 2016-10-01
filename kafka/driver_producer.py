@@ -20,12 +20,12 @@ boundaries_file = "boundaries.csv"
 city = 'NYC'
 
 
-total_drivers = 150
+total_drivers = 1500
 getcontext().prec=6
 step_to_dest = random.randrange(1,2)
 
 cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', \
-                    ' ip-172-31-0-105', 'ip-172-31-0-106']
+                    'ip-172-31-0-105', 'ip-172-31-0-106']
 
 brokers = ','.join(['{}:9092'.format(i) for i in cluster])
 #brokers = 'localhost:9092'

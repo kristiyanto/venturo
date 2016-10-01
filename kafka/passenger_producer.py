@@ -19,7 +19,7 @@ from decimal import *
 ### Global 
 getcontext().prec=6
 cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', \
-                    ' ip-172-31-0-105', 'ip-172-31-0-106']
+                    'ip-172-31-0-105', 'ip-172-31-0-106']
 
 brokers = ','.join(['{}:9092'.format(i) for i in cluster])
 
@@ -27,7 +27,7 @@ boundaries_file = "boundaries.csv"
 tourist_attractions = "destinations.csv"
 kafka = KafkaClient(brokers)
 producer = KeyedProducer(kafka)
-totalPassenger = 300
+totalPassenger = 5000
 
 last_uid = 0
 

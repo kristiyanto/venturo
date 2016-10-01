@@ -17,42 +17,7 @@ conf = (SparkConf()
 
 sc = SparkContext(appName="trip")
 ssc = StreamingContext(sc, 3)
-sc.setLogLevel("WARN")
-
-
-def sendToKafka(dic):
-    pass
-
-def convertTime(ctime):
-    try:
-        tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
-        ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-    except:
-        print "Time conversion failed"
-    return ctime
-
-
-def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
-    cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
-    es = Elasticsearch(cluster, port=9200)
-
-    ctime = convertTime(ctime)
-    
-    res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
-    
-    if res['found'] and (res['_source']['status'] == status): 
-        return True
-    elif not res['found'] and status == 'idle': 
-        doc = {"status": "idle", "ctime": ctime, "location": location, \
-               'name': name}
-        doc = json.dumps(doc)
-        q = '{{"doc": {}, "doc_as_upsert": "true"}}'.format(doc)
-        res = es.update(index='driver', doc_type='rolling', id=driver, \
-                            body=q)
-        return True
-    else:
-        return False
-        
+sc.setLogLevel("WARN")    
 
 def assign(x):
     
@@ -151,12 +116,14 @@ def assign(x):
                                 body=q)
             return doc
     def isFull(driver):
-        _driver = es.get(index='driver', doc_type='rolling', id=1)
+        _driver = es.get(index='driver', doc_type='rolling', id=1, ignore=[400, 404])
         if _driver['found']:
             try:
                 print False if _driver['_source']['p1'] and _driver['_source']['p2'] else True
             except:
                 print False
+        else:
+            return False
         
     if sanityCheck(status, ctime, location, driver, name, p1=None, p2=None) and not isFull(driver):
         res = nearby(ctime, location, driver, name, p1, p2)
@@ -456,6 +423,8 @@ def main():
     
     ssc.start()
     ssc.awaitTermination()
+    ssc.stop()
+
 
 
 if __name__ == '__main__':
