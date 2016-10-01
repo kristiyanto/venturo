@@ -20,7 +20,7 @@ boundaries_file = "boundaries.csv"
 city = 'NYC'
 
 
-total_drivers = 1
+total_drivers = 2
 getcontext().prec=6
 step_to_dest = random.randrange(1,2)
 
@@ -28,7 +28,7 @@ cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', \
                     ' ip-172-31-0-105', 'ip-172-31-0-106']
 
 brokers = ','.join(['{}:9092'.format(i) for i in cluster])
-brokers = 'localhost:9092'
+#brokers = 'localhost:9092'
 kafka = KafkaClient(brokers)
 producer = KeyedProducer(kafka)
 es = Elasticsearch(cluster, \
@@ -63,7 +63,6 @@ def simulateTrip(id, city):
     
 def generateDriver(city):
     d_id = random.randint(1, total_drivers)
-
     driver_mapping ={ 
             'name': 'driver_{}'.format(d_id),
             'id': d_id,
@@ -85,9 +84,13 @@ def generateDriver(city):
     if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
         driver_mapping['status'] = q['_source']['status']
         driver_mapping['p1'] = q['_source']['p1']
-        driver_mapping['p2'] = q['_source']['p2']
         driver_mapping['destination'] = q['_source']['destination']
         driver_mapping['destinationid'] = q['_source']['destinationid']
+        
+        try:
+            driver_mapping['p2'] = q['_source']['p2']
+        except: 
+            pass
     return(driver_mapping)
 
 bound = loadBoundaries(boundaries_file)

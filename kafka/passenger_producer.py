@@ -18,12 +18,16 @@ from decimal import *
 
 ### Global 
 getcontext().prec=6
+cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', \
+                    ' ip-172-31-0-105', 'ip-172-31-0-106']
+
+brokers = ','.join(['{}:9092'.format(i) for i in cluster])
 
 boundaries_file = "boundaries.csv"
 tourist_attractions = "destinations.csv"
-kafka = KafkaClient('localhost:9092')
+kafka = KafkaClient(brokers)
 producer = KeyedProducer(kafka)
-totalPassenger = 2
+totalPassenger = 3
 
 last_uid = 0
 
@@ -59,7 +63,7 @@ def generatePassenger(city):
     curr_long = round(random.uniform(float(bnd[1]), float(bnd[3])),4)
     att = random.sample(attract.items(),3)
     pass_mapping = {
-            'name': "passenger_{}".format(random.randrange(1,totalPassenger)),
+            'name': "passenger_{}".format(last_uid),
             'id': last_uid,
             'status': 'wait',
             'match': None,                

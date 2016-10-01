@@ -35,7 +35,6 @@ class driver(object):
         return(res['_version'])
     def nearbyPassengers(self):
         geo_query = { "from" : 0, "size" : 3,
-                     "_source":{"include": [ "_id" ]},
                      "query": {
                 "filtered": {
                     "query" : {
