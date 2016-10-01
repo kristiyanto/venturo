@@ -27,7 +27,7 @@ boundaries_file = "boundaries.csv"
 tourist_attractions = "destinations.csv"
 kafka = KafkaClient(brokers)
 producer = KeyedProducer(kafka)
-totalPassenger = 3
+totalPassenger = 300
 
 last_uid = 0
 

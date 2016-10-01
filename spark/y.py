@@ -27,14 +27,18 @@ def convertTime(ctime):
         print "Time conversion failed"
     return ctime
 
-# Reject invalid messages (those who are late or not match with records
-def confirm(status, ctime, location, driver, name=None, p1=None, p2=None):
+def sendToKafka(dic):
+    pass
+
+
+def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
     es = Elasticsearch(cluster, port=9200)
 
     ctime = convertTime(ctime)
     
     res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
+    
     if res['found'] and (res['_source']['status'] == status): 
         return True
     elif not res['found'] and status == 'idle': 
@@ -58,10 +62,11 @@ def assign(x):
     p2 = x['p2']
     status = x['status']
     ctime = convertTime(ctime)
+    cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
+    es = Elasticsearch(cluster, port=9200)
     
     def nearby(ctime, location, driver, name, p1=None, p2=None):    
-        cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
-        es = Elasticsearch(cluster, port=9200)
+ 
         geo_query = { "from" : 0, "size" : 1,
                       "query": {
                    "filtered": {
@@ -110,13 +115,19 @@ def assign(x):
             q = '{{"doc": {}}}'.format(doc)
             res = es.update(index='driver', doc_type='rolling', id=driver, \
                                 body=q)
-
             return doc
+    def isFull(driver):
+        _driver = es.get(index='driver', doc_type='rolling', id=1)
+        if _driver['found']:
+            try:
+                print False if _driver['_source']['p1'] and _driver['_source']['p2'] else True
+            except:
+                print False
         
-    if confirm(status, ctime, location, driver, name, p1=None, p2=None):
+    if sanityCheck(status, ctime, location, driver, name, p1=None, p2=None) and not isFull(driver):
         res = nearby(ctime, location, driver, name, p1, p2)
     else:
-        res = "{'invalid'}"
+        res = "{'Message is not sane. Discarded'}"
     return res
 
 
@@ -193,7 +204,7 @@ def pickup(x):
                             body=q)
             
         return doc
-    res = hopOn(ctime, location, driver, name, p1, p2) if confirm(status, ctime, location, driver) else '{invalid}'
+    res = hopOn(ctime, location, driver, name, p1, p2) if sanityCheck(status, ctime, location, driver) else '{invalid}'
 
     return res
 
@@ -247,7 +258,7 @@ def onride(x):
             res = es.update(index='passenger', doc_type='rolling', id=p2, \
                             body=q_)
                 
-    if  confirm(status, ctime, location, driver, name):
+    if  sanityCheck(status, ctime, location, driver, name):
         res = arrived(ctime, location, dest, driver, name, p1, p2)
     else:
         res = '{invalid}'

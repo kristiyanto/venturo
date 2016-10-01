@@ -20,7 +20,7 @@ boundaries_file = "boundaries.csv"
 city = 'NYC'
 
 
-total_drivers = 2
+total_drivers = 150
 getcontext().prec=6
 step_to_dest = random.randrange(1,2)
 
