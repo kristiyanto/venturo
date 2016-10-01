@@ -58,9 +58,8 @@ def activePass():
     return res
 
 def waitPass():
-
     q = {
-        'query': { 'term': {'status': 'arrived'} },
+        'query': { 'term': {'status': 'wait'} },
         'filter': {'range': { 'ctime': { 'gt': window }} 
             }
         }

@@ -258,19 +258,20 @@
       $("#onWait").html(data.onWait);
 
 
-      for (var pass = 0; pass < data.pLoc.length; pass++) {
-        var circle = L.circle(data.pLoc[pass], 10, {
-        color: 'green',
-        fillColor: 'green',
-        fillOpacity: 0.5
-        }).addTo(mymap);
-        }
-
       for (var drv = 0; drv < data.dLoc.length; drv++) {
         var circle = L.circle(data.dLoc[drv], 30, {
         color: 'blue',
         fillColor: 'blue',
         fillOpacity: 0.2
+        }).addTo(mymap);
+        }
+        
+        
+      for (var pass = 0; pass < data.pLoc.length; pass++) {
+        var circle = L.circle(data.pLoc[pass], 10, {
+        color: 'green',
+        fillColor: 'green',
+        fillOpacity: 0.5
         }).addTo(mymap);
         }
 

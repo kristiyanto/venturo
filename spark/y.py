@@ -19,6 +19,10 @@ sc = SparkContext(appName="trip")
 ssc = StreamingContext(sc, 3)
 sc.setLogLevel("WARN")
 
+
+def sendToKafka(dic):
+    pass
+
 def convertTime(ctime):
     try:
         tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
@@ -26,9 +30,6 @@ def convertTime(ctime):
     except:
         print "Time conversion failed"
     return ctime
-
-def sendToKafka(dic):
-    pass
 
 
 def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
@@ -54,6 +55,39 @@ def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
         
 
 def assign(x):
+    
+    def convertTime(ctime):
+        try:
+            tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
+            ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        except:
+            print "Time conversion failed"
+        return ctime
+
+
+    def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
+        cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
+        es = Elasticsearch(cluster, port=9200)
+
+        ctime = convertTime(ctime)
+
+        res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
+
+        if res['found'] and (res['_source']['status'] == status): 
+            return True
+        elif not res['found'] and status == 'idle': 
+            doc = {"status": "idle", "ctime": ctime, "location": location, \
+                   'name': name}
+            doc = json.dumps(doc)
+            q = '{{"doc": {}, "doc_as_upsert": "true"}}'.format(doc)
+            res = es.update(index='driver', doc_type='rolling', id=driver, \
+                                body=q)
+            return True
+        else:
+            return False
+
+
+    
     ctime = x['ctime']
     location = x['location']
     driver = x['id']
@@ -89,7 +123,7 @@ def assign(x):
             doc = {"status": "pickup", "ctime": ctime, \
                    "location": location, 'name': name, \
                    'destination':  passenger['location'], \
-                   'destinationid': passenger['id']}
+                   'destinationid': passenger['id'], 'id': driver}
             if not p1:
                 doc['p1'] = passenger['id']
             elif not p2:
@@ -109,7 +143,7 @@ def assign(x):
         else:
             isKnown = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])['found']
 
-            doc = {"ctime": ctime, "location": location}
+            doc = {"ctime": ctime, "location": location, 'id': driver}
             if not isKnown: doc['status'] = "idle"
             doc = json.dumps(doc)
             q = '{{"doc": {}}}'.format(doc)
@@ -132,6 +166,38 @@ def assign(x):
 
 
 def pickup(x):
+    
+    def convertTime(ctime):
+        try:
+            tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
+            ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        except:
+            print "Time conversion failed"
+        return ctime
+
+
+    def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
+        cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
+        es = Elasticsearch(cluster, port=9200)
+
+        ctime = convertTime(ctime)
+
+        res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
+
+        if res['found'] and (res['_source']['status'] == status): 
+            return True
+        elif not res['found'] and status == 'idle': 
+            doc = {"status": "idle", "ctime": ctime, "location": location, \
+                   'name': name}
+            doc = json.dumps(doc)
+            q = '{{"doc": {}, "doc_as_upsert": "true"}}'.format(doc)
+            res = es.update(index='driver', doc_type='rolling', id=driver, \
+                                body=q)
+            return True
+        else:
+            return False
+    
+    
     ctime = x['ctime']
     location = x['location']
     driver = x['id']
@@ -209,6 +275,38 @@ def pickup(x):
     return res
 
 def onride(x):
+    def convertTime(ctime):
+        try:
+            tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
+            ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        except:
+            print "Time conversion failed"
+        return ctime
+
+
+    def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
+        cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
+        es = Elasticsearch(cluster, port=9200)
+
+        ctime = convertTime(ctime)
+
+        res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
+
+        if res['found'] and (res['_source']['status'] == status): 
+            return True
+        elif not res['found'] and status == 'idle': 
+            doc = {"status": "idle", "ctime": ctime, "location": location, \
+                   'name': name}
+            doc = json.dumps(doc)
+            q = '{{"doc": {}, "doc_as_upsert": "true"}}'.format(doc)
+            res = es.update(index='driver', doc_type='rolling', id=driver, \
+                                body=q)
+            return True
+        else:
+            return False
+        
+    
+    
     ctime = x['ctime']
     location = x['location']
     driver = x['id']
@@ -268,6 +366,38 @@ def onride(x):
 
 
 def updatePass(x):
+    def convertTime(ctime):
+        try:
+            tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
+            ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        except:
+            print "Time conversion failed"
+        return ctime
+
+
+    def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
+        cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
+        es = Elasticsearch(cluster, port=9200)
+
+        ctime = convertTime(ctime)
+
+        res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
+
+        if res['found'] and (res['_source']['status'] == status): 
+            return True
+        elif not res['found'] and status == 'idle': 
+            doc = {"status": "idle", "ctime": ctime, "location": location, \
+                   'name': name}
+            doc = json.dumps(doc)
+            q = '{{"doc": {}, "doc_as_upsert": "true"}}'.format(doc)
+            res = es.update(index='driver', doc_type='rolling', id=driver, \
+                                body=q)
+            return True
+        else:
+            return False    
+    
+
+    
     passenger = {
         'ctime' : x['ctime'],
         'location' : x['location'],
