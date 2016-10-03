@@ -125,7 +125,10 @@ def avgWait():
                 }}}}
 
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
-    res= round(res['aggregations']['avg_wait']['avg_wait']['value'], 2)
+    if res['aggregations']['avg_wait']['avg_wait']['value']:
+        res = round(float(res['aggregations']['avg_wait']['avg_wait']['value']), 2)
+    else:
+        res = "N/A"
     return res
 def event():
     q = {'size': 1,
@@ -144,9 +147,12 @@ def event():
     }]
     }
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
-    res = res['hits']['hits'][0]['_source']
-    msg = ["It's a match! Passenger {} and Passenger {} are going to {}".format(\
-        res['id'], res['match'], res['destinationid']), res['location']]
+    if len(res['hits']['hits']) > 0:
+        res = res['hits']['hits'][0]['_source']
+        msg = ["It's a match! Passenger {} and Passenger {} are going to {}".format(\
+            res['id'], res['match'], res['destinationid']), res['location']]
+    else:
+        msg = ["Nothing happens", [0,0]]
     return msg
 
    
