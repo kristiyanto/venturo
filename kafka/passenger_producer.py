@@ -3,7 +3,7 @@
 # for the stream. Ideally, this would come from User.
 # Boundaries.csv contains information about the location boundaries for the generation.
 
-
+totalPassenger = 2000
 # Once generated, the request then sent to Kafka.
 
 import csv
@@ -27,7 +27,7 @@ boundaries_file = "boundaries.csv"
 tourist_attractions = "destinations.csv"
 kafka = KafkaClient(brokers)
 producer = KeyedProducer(kafka)
-totalPassenger = 1
+
 
 last_uid = 0
 
@@ -98,7 +98,7 @@ for n in range(totalPassenger):
         user = generatePassenger('NYC')
         u_json = json.dumps(user).encode('utf-8')
         key = json.dumps(user['id']).encode('utf-8')
-        print(u_json)
+        #print(u_json)
         producer.send(b'psg', key, u_json)
         #time.sleep(2)
         

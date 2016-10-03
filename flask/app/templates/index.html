@@ -49,6 +49,7 @@
 <body>
 
     <div id="wrapper">
+                   
 
         <!-- Navigation -->
         <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
@@ -60,20 +61,20 @@
                     <span class="icon-bar"></span>
                 </button>
                 <div>&nbsp;</div>
-                <a class="navbar-brand" href="index.html">VENTURO: a ride-sharing platform for leissure. </a>
             </div>
              <!-- /.navbar-header -->
 
-
+            <a class="navbar-brand" href="index.html">VENTURO: a ride-sharing platform for leissure. </a>
             <!-- /.navbar-top-links -->
 
             <div class="navbar-default sidebar" role="navigation">
                 <div class="sidebar-nav navbar-collapse">
+                    <img src={{ url_for('static', filename='qr.jpg') }}  style="width:100%;"></img> 
                     <ul class="nav" id="side-menu">
        
                             <!-- /input-group -->
                         <li>
-                            <a href="/"><i class="fa fa-clock-o fa-fw" id="clock"></i></a>
+                            
                         </li>
                         <li>
                             <a href="index.html"><i class="fa fa-dashboard fa-fw"></i> Main page</a>
@@ -93,10 +94,13 @@
                         <li>
                             <a href="http://students.washington.edu/danielkr/resume.pdf" target="_blank"><i class="fa fa-file-pdf-o fa-fw"></i> Resume</a>
                         </li>
+                        <li> <a href="/"><i class="fa fa-clock-o fa-fw" id="clock"></i></a> </li>
  
                             <!-- /.nav-second-level -->
                         
                     </ul>
+                    
+
                 </div>
                 <!-- /.sidebar-collapse -->
             </div>
@@ -120,9 +124,12 @@
                 <div class="col-lg-12">
                     <h1 class="page-header">http://venturo.kristiyanto.me</h1>
                 </div>
+     
                 <!-- /.col-lg-12 -->
             </div>
             <!-- /.row -->
+            
+            
             <div class="row">
                 <div class="col-lg-3 col-md-6">
                     <div class="panel panel-primary">
@@ -221,38 +228,12 @@
             <!-- /.row -->
                                     
             <div class="row">
-                <div class="col-lg-6">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            Area Chart Example
-                        </div>
-                        <!-- /.panel-heading -->
-                        <div class="panel-body">
-                            <div id="morris-area-chart"></div>
-                        </div>
-                        <!-- /.panel-body -->
-                    </div>
-                    <!-- /.panel -->
-                </div>
+                
                 <!-- /.col-lg-6 -->
                 <div class="col-lg-6">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            Bar Chart Example
-                        </div>
-                        <!-- /.panel-heading -->
-                        <div class="panel-body">
-                            <div id="morris-bar-chart"></div>
-                        </div>
-                        <!-- /.panel-body -->
-                    </div>
-                    <!-- /.panel -->
-                </div>
-                <!-- /.col-lg-6 -->
-                <div class="col-lg-6">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            Line Chart Example
+                            Happening
                         </div>
                         <!-- /.panel-heading -->
                         <div class="panel-body">
@@ -266,11 +247,11 @@
                 <div class="col-lg-6">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            Donut Chart Example
+                            Passengers
                         </div>
                         <!-- /.panel-heading -->
                         <div class="panel-body">
-                            <div id="morris-donut-chart"></div>
+                            <div id="arrMsg"></div>
                         </div>
                         <!-- /.panel-body -->
                     </div>
@@ -297,14 +278,20 @@
     <script src="{{ url_for('static', filename='vendor/metisMenu/metisMenu.min.js') }} "></script>
 
     <!-- Morris Charts JavaScript -->
-    <script src="{{ url_for('static', filename='vendor/raphael/raphael.min.js') }} "></script>
+    <script src="{{ url_for('static', filename='vendor/raphael/raphael.min.js') }} "></script> 
     <script src="{{ url_for('static', filename='vendor/morrisjs/morris.min.js') }} "></script>
-    <script src="{{ url_for('static', filename='data/morris-data.js') }} "></script>
-
+    <script src="{{ url_for('static', filename='data/morris-data.js') }} "></script> 
+    
     <!-- Custom Theme JavaScript -->
     <script src="{{ url_for('static', filename='dist/js/sb-admin-2.js') }}"></script>
     <script src="{{ url_for('static', filename='dist/js/l.js') }}"></script>
     <script type="text/javascript">
+    
+    var DATA;
+        
+
+      
+        
     function currentTime()
     {
      function fixTimeFormat(i) {
@@ -321,13 +308,22 @@
                 console.log("problem with " + e + mymap._layers[lyr]);
             }}
     }
+        
 
      var today = new Date(),
         h = fixTimeFormat(today.getHours()),
         m = fixTimeFormat(today.getMinutes()),
         s = fixTimeFormat(today.getSeconds());
      document.getElementById("clock").innerHTML = "&nbsp;" + h + ":" + m + ":" + s;
-    
+
+
+    var onWait;
+    var arrived;
+    var match;
+    var ontrip;
+
+        
+        
     $.getJSON( "stats", function( data ) {
       var items = [];
       $.each(data, function(key, val ) {
@@ -342,15 +338,24 @@
       $("#idle").html(data.idle);
       $("#avgwait").html(data.avgWait);
       $("#event").html(data.msg);
+      $("#arrMsg").html(data.arrMsg);
         
-      
-
+      onWait = data.onWait;
+      arrived = data.arrived;
+      match = data.match;
+      ontrip = data.onRide;
+        
       var circle = L.circle(data.mLoc, 250, {
       color: 'pink',
       fillOpacity: 0.5
       }).addTo(mymap);
         
+      var circle = L.circle(data.arrMsgLoc, 250, {
+      color: 'yellow',
+      fillOpacity: 0.5
+      }).addTo(mymap);
         
+         
 
       for (var drv = 0; drv < data.dLoc.length; drv++) {
         var circle = L.circle(data.dLoc[drv], 30, {
@@ -368,15 +373,21 @@
         fillOpacity: 0.5
         }).addTo(mymap);
         }
+        
 
     });
 
-    }        
-
+    }         
 
     $(function () {
+
     setInterval(currentTime, 2000);
+
     });
+        
+
+
+        
 
     </script>
 

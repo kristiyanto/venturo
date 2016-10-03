@@ -27,8 +27,11 @@ def getstats():
     arr = arrived()
     idle = idleDrivers()
     avg_wait = avgWait()
-    msg = event()[0]
-    msgLoc = event()[1]
+    msg = matchMsg()[0]
+    msgLoc = matchMsg()[1]
+    arrMsg = arrivedMsg()[0]
+    arrMsgLoc = arrivedMsg()[1]
+
     
     dLatLong = []
     pLatLong = []
@@ -49,8 +52,10 @@ def getstats():
         for i in passenger['hits']['hits']:
             pLatLong.append(i['_source']['location'])
 
-    return json.dumps({'actDrivers': ad, 'match': match, 'msg': msg ,'mLoc': msgLoc, 'arrived': arr, 'avgWait': avg_wait, 'idle': idle, 'dLoc': dLatLong, 'actPass': ap, \
-        'pLoc': pLatLong, 'onWait': onWait, 'onRide': onRide})
+    return json.dumps({'actDrivers': ad, 'match': match, 'msg': msg ,'mLoc': msgLoc, 'arrived': arr, \
+                       'arrMsg': arrMsg, 'arrMsgLoc': arrMsgLoc ,'avgWait': avg_wait, 'idle': idle, \
+                       'dLoc': dLatLong, 'actPass': ap, \
+                       'pLoc': pLatLong, 'onWait': onWait, 'onRide': onRide})
 
 def activeDrivers():
     q = {"size": size, "filter": {"range": { "ctime": { "gt": window }}}}
@@ -130,7 +135,7 @@ def avgWait():
     else:
         res = "N/A"
     return res
-def event():
+def matchMsg():
     q = {'size': 1,
     "query" : {
         "constant_score" : {
@@ -155,4 +160,28 @@ def event():
         msg = ["Nothing happens", [0,0]]
     return msg
 
+def arrivedMsg():
+    q = {'size': 1,
+    "query" : {
+        "constant_score" : {
+            "filter" : {
+                "exists" : { "field" : "arrived" }
+            }
+        }
+    },
+    "sort": [
+    {
+      "ctime": {
+        "order": "desc"
+      }
+    }]
+    }
+    res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
+    if len(res['hits']['hits']) > 0:
+        res = res['hits']['hits'][0]['_source']
+        msg = ["Passenger {} just arrived to {}".format(\
+            res['id'], res['match'], res['destinationid']), res['location']]
+    else:
+        msg = ["Nothing happens", [0,0]]
+    return msg
    
