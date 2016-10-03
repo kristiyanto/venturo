@@ -27,7 +27,7 @@ boundaries_file = "boundaries.csv"
 tourist_attractions = "destinations.csv"
 kafka = KafkaClient(brokers)
 producer = KeyedProducer(kafka)
-totalPassenger = 5000
+totalPassenger = 1000
 
 last_uid = 0
 
@@ -93,13 +93,13 @@ bound = loadBoundaries(boundaries_file)
 attract = loadTattraction(tourist_attractions)
 
 # Generate users
-
+print("Generating {} passengers...".format(totalPassenger))
 for n in range(totalPassenger):
         user = generatePassenger('NYC')
         u_json = json.dumps(user).encode('utf-8')
         key = json.dumps(user['id']).encode('utf-8')
-        print(u_json)
-        producer.send(b'psg', key, u_json) 
+        #print(u_json)
+        producer.send(b'psg', key, u_json)
         #time.sleep(2)
         
 

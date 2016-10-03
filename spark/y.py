@@ -6,20 +6,16 @@ from pyspark.streaming import StreamingContext
 from pyspark.streaming.kafka import KafkaUtils
 from elasticsearch import Elasticsearch
 from datetime import datetime
+from dateutil import parser
 from geopy.distance import vincenty, Point
 
 # park-submit --master local[*] --packages org.apache.spark:spark-streaming-kafka_2.10:1.6.1 --executor-memory 1G y.py
 # spark-submit --master spark://ec2-54-71-28-156.us-west-2.compute.amazonaws.com:7077 --packages org.apache.spark:spark-streaming-kafka_2.10:1.6.1 y.py
 # yarn application -kill APPID
+# SPARK_HOME_DIR/bin/spark-submit --master spark://ec2-54-71-28-156.us-west-2.compute.amazonaws.com:7077 --kill $DRIVER_ID
 
 
-conf = (SparkConf()
-         .setAppName("Venturo for Insight")
-         .set("spark.executor.memory", "3g")
-         .set("spark.streaming.blockInterval", "100ms")
-         .set("spark.streaming.concurrentJobs","4"))
-
-sc = SparkContext(appName="trip")
+sc = SparkContext(appName="venturo")
 ssc = StreamingContext(sc, 3)
 sc.setLogLevel("WARN")    
 
@@ -51,7 +47,13 @@ def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
                                 body=q)
         return True
     else:
-        return False    
+        return False
+
+def elapsedTime(t1, ctime):
+    t = datetime.strptime("{}".format(t1),'%Y-%m-%dT%H:%M:%S.%fZ')
+    ctime = datetime.strptime("{}".format(ctime),'%Y-%m-%dT%H:%M:%S.%fZ') #id dis : str & unicode
+    elapsed = int((ctime-t).seconds)
+    return elapsed
     
 
 def assign(x):
@@ -159,21 +161,21 @@ def pickup(x):
         
         p = es.get(index='passenger', doc_type='rolling', id=passenger, \
                    ignore=[404, 400])['_source']
+        
         if (vincenty(Point(location), Point(p['location'])).meters < 300):
             dDoc = {"status": "ontrip", "ctime": ctime, "location": location,\
                    'destination': p['destination'], 'destinationid': \
                    p['destinationid']}
-
-           
-            doc = json.dumps({"status": "ontrip", "ctime": ctime, \
-                              "location": newLoc})
+            ptime = elapsedTime(p['ctime'], ctime)
+            
+            
             if p2:
-                doc_ = json.dumps({"status": "ontrip", "ctime": ctime, \
+                doc_ = json.dumps({"status": "ontrip", "ptime": ptime, \
                                    "location": newLoc_, "match": p1})
                 q_ = '{{"doc": {}}}'.format(doc_)
                 res = es.update(index='passenger', doc_type='rolling', \
                                 id=p2, body=q_)
-                doc_ = json.dumps({"status": "ontrip", "ctime": ctime, \
+                doc_ = json.dumps({"status": "ontrip", "ptime": ptime, \
                                    "location": newLoc, "match": p2})
                 q_ = '{{"doc": {}}}'.format(doc_)
                 res = es.update(index='passenger', doc_type='rolling', \
@@ -182,6 +184,9 @@ def pickup(x):
             else:
                 dDoc['origin'] = location
 
+            doc = json.dumps({"status": "ontrip", "ctime": ctime, \
+                              "location": newLoc, 'ptime': ptime})
+            
             q = '{{"doc": {}}}'.format(doc)
             res = es.update(index='passenger', doc_type='rolling', id=p1, body=q)
             
@@ -232,7 +237,7 @@ def onride(x):
         
         isArrived = vincenty(Point(location), Point(dest)).meters < 300
         
-        doc = {"status": "arrived", "ctime": ctime, "location": location,\
+        doc = {"status": "idle", "ctime": ctime, "location": location,\
                "destination": None, "destinationid": None, "p1": None, \
                "p2": None}
 
@@ -241,12 +246,13 @@ def onride(x):
         q = '{{"doc": {}}}'.format(doc)
         res = es.update(index='driver', doc_type='rolling', id=driver, \
                         body=q)
-
+        
         newLoc = [round(location[0] - 0.0001,4), round(location[1] - 0.0001,4)]
         newLoc_ = [round(location[0] + 0.0001,4), round(location[1] + 0.0001,4)]
-
-        doc = {"ctime": ctime, "location": newLoc}
-        doc_ = {"ctime": ctime, "location": newLoc_}
+        
+        
+        doc = {"atime": ctime, "location": newLoc}
+        doc_ = {"atime": ctime, "location": newLoc_}
         
         if isArrived: 
             doc['status'] = "arrived"
@@ -268,7 +274,7 @@ def onride(x):
     if  sanityCheck(status, ctime, location, driver, name):
         res = arrived(ctime, location, dest, driver, name, p1, p2)
     else:
-        res = '{invalid}'
+        res = '{invalid message}'
     return res
         
 
@@ -289,10 +295,12 @@ def updatePass(x):
         'altdest2' : x['altdest2'],
         'altdest2id' : x["altdest2id"],
         'status' : x['status'],
+        'path': [x['location']],  
         }
     
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
     es = Elasticsearch(cluster, port=9200)
+    
     try:
         tmp = datetime.strptime("{}".format(passenger['ctime']), '%Y-%m-%d %H:%M:%S.%f')
         passenger['ctime'] = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
@@ -312,7 +320,6 @@ def updatePass(x):
 
 def main():
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
-    es = Elasticsearch(cluster, port=9200)
     brokers = ','.join(['{}:9092'.format(i) for i in cluster])
     
     driver = KafkaUtils.createDirectStream(ssc, ['drv'], {'metadata.broker.list':brokers})
@@ -335,7 +342,7 @@ def main():
     
     ssc.start()
     ssc.awaitTermination()
-    ssc.stop()
+    #ssc.stop()
 
 
 

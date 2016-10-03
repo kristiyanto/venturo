@@ -1,5 +1,5 @@
-
-
+from elasticsearch import Elasticsearch
+es = Elasticsearch(['ip-172-31-0-107', 'ip-172-31-0-100', ' ip-172-31-0-105', 'ip-172-31-0-106'], port=9200)
 
 driver_mapping = {
   'mappings': {
@@ -7,16 +7,17 @@ driver_mapping = {
       'properties': {
         'id': {'type': 'string'},
         'status': {'type': 'string'},
-        'location': {'type': 'geo_point', 'lat_lon': 'true'},
+        'location': {'type': 'geo_point', 'lat_lon': 'true', "include_in_all": "false"},
         'ctime': {'type': 'date'},
-        'p1': {'type': 'string'},
-        'p2': {'type': 'string'},
-        'destination': {'type': 'geo_point', 'lat_lon': 'true'},
-        'destinationid':{'type': 'string'},
-        'altdest1': {'type': 'geo_point', 'lat_lon': 'true'},
-        'altdest2id':{'type': 'string'},                
-        'altdest2': {'type': 'geo_point', 'lat_lon': 'true'},
-        'altdest2id':{'type': 'string'},                
+        'p1': {'type': 'string', "include_in_all": "false"},
+        'p2': {'type': 'string', "include_in_all": "false"},
+        'destination': {'type': 'geo_point', 'lat_lon': 'true', "include_in_all": "false"},
+        'destinationid':{'type': 'string', "include_in_all": "false"},
+        'altdest1': {'type': 'geo_point', 'lat_lon': 'true', "include_in_all": "false"},
+        'altdest2id':{'type': 'string', "include_in_all": "false"},                
+        'altdest2': {'type': 'geo_point', 'lat_lon': 'true', "include_in_all": "false"},
+        'altdest2id':{'type': 'string', "include_in_all": "false"},
+        'origin': {'type': 'geo_point', 'lat_lon': 'true', "include_in_all": "false"},
       }
     }
   }
@@ -29,20 +30,23 @@ pass_mapping = {
       'properties': {
         'id': {'type': 'string'},
         'status': {'type': 'string'},
-        'match': {'type': 'string'},                
+        'match': {'type': 'string', "include_in_all": "false"},                
         'location': {'type': 'geo_point', 'lat_lon': 'true'},
         'ctime': {'type': 'date'},
-        'driver': {'type': 'string'},
-        'destination': {'type': 'geo_point', 'lat_lon': 'true'},
-        'destinationid':{'type': 'string'},                
-        'altdest1': {'type': 'geo_point', 'lat_lon': 'true'},
-        'altdestid1':{'type': 'string'},                    
-        'altdest2': {'type': 'geo_point', 'lat_lon': 'true'},
-        'altdestid2':{'type': 'string'},                
+        'driver': {'type': 'string', "include_in_all": "false"},
+        'destination': {'type': 'geo_point', 'lat_lon': 'true', "include_in_all": "false"},
+        'destinationid':{'type': 'string', "include_in_all": "false"},                
+        'altdest1': {'type': 'geo_point', 'lat_lon': 'true', "include_in_all": "false"},
+        'altdestid1':{'type': 'string', "include_in_all": "false"},                    
+        'altdest2': {'type': 'geo_point', 'lat_lon': 'true', "include_in_all": "false"},
+        'altdestid2':{'type': 'string', "include_in_all": "false"}, 
+        'origin': {'type': 'geo_point', 'lat_lon': 'true', "include_in_all": "false"},
       }
     }
   }
 }
+
+
 
 
 #es.indices.delete(index='driver', ignore=[400, 404])

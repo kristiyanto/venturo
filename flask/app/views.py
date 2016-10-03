@@ -26,6 +26,9 @@ def getstats():
     match = matches()
     arr = arrived()
     idle = idleDrivers()
+    avg_wait = avgWait()
+    msg = event()[0]
+    msgLoc = event()[1]
     
     dLatLong = []
     pLatLong = []
@@ -46,7 +49,7 @@ def getstats():
         for i in passenger['hits']['hits']:
             pLatLong.append(i['_source']['location'])
 
-    return json.dumps({'actDrivers': ad, 'match': match, 'arrived': arr, 'idle': idle, 'dLoc': dLatLong, 'actPass': ap, \
+    return json.dumps({'actDrivers': ad, 'match': match, 'msg': msg ,'mLoc': msgLoc, 'arrived': arr, 'avgWait': avg_wait, 'idle': idle, 'dLoc': dLatLong, 'actPass': ap, \
         'pLoc': pLatLong, 'onWait': onWait, 'onRide': onRide})
 
 def activeDrivers():
@@ -113,3 +116,37 @@ def matches():
     
     return res['hits']['total']
 
+def avgWait():
+    q = { 'size': 0,
+        "aggs" : {
+            "avg_wait" : { "filter" : {  "range" : { "ctime" : { "gt" : window,}}},
+            "aggs" : {
+                "avg_wait" : { "avg" : { "field" : "ptime" } }
+                }}}}
+
+    res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
+    res= round(res['aggregations']['avg_wait']['avg_wait']['value'], 2)
+    return res
+def event():
+    q = {'size': 1,
+    "query" : {
+        "constant_score" : {
+            "filter" : {
+                "exists" : { "field" : "match" }
+            }
+        }
+    },
+    "sort": [
+    {
+      "ctime": {
+        "order": "desc"
+      }
+    }]
+    }
+    res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
+    res = res['hits']['hits'][0]['_source']
+    msg = ["It's a match! Passenger {} and Passenger {} are going to {}".format(\
+        res['id'], res['match'], res['destinationid']), res['location']]
+    return msg
+
+   

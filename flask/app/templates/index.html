@@ -186,7 +186,7 @@
                         </div>
                         <a href="#">
                             <div class="panel-footer">
-                                <span class="pull-left">Total shared ride (all time): &nbsp; </span>
+                                <span class="pull-left">Total match (all time): &nbsp; </span>
                                 <span class="pull-left", id="match">0</span>
                                 <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
                                 <div class="clearfix"></div>
@@ -209,7 +209,8 @@
                         </div>
                         <a href="#">
                             <div class="panel-footer">
-                                <span class="pull-left">Average waiting time: </span>
+                                <span class="pull-left">Average waiting time : &nbsp;</span>
+                                <span class="pull-left" id='avgwait'></span>
                                 <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
                                 <div class="clearfix"></div>
                             </div>
@@ -226,7 +227,7 @@
                         Happening
                         </div>
                         <div class="panel-body">
-                            <p id=#newsflash></p>
+                            <p id='event'></p>
                         </div>
                         <div class="panel-footer">
                             Panel Footer
@@ -296,8 +297,17 @@
       $("#arr").html(data.arrived);
       $("#match").html(data.match);
       $("#idle").html(data.idle);
+      $("#avgwait").html(data.avgWait);
+      $("#event").html(data.msg);
         
+      
 
+      var circle = L.circle(data.mLoc, 250, {
+      color: 'pink',
+      fillOpacity: 0.5
+      }).addTo(mymap);
+        
+        
 
       for (var drv = 0; drv < data.dLoc.length; drv++) {
         var circle = L.circle(data.dLoc[drv], 30, {
