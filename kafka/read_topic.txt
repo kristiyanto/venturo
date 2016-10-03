@@ -1,1 +1,2 @@
-kafka-console-consumer.sh --zookeeper localhost:2181 --from-beginning --topic driver &
+kafka-console-consumer.sh --zookeeper localhost:2181 --from-beginning --topic drv &
+kafka-console-consumer.sh --zookeeper localhost:2181 --from-beginning --topic psg &

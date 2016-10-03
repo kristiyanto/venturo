@@ -9,6 +9,7 @@ window = 'now-2h'
 
 @app.route('/')
 @app.route('/index')
+@app.route('/index.html')
 def index():
     # return "Hello, World!"
     return render_template('index.html')
@@ -22,6 +23,9 @@ def getstats():
     passenger = activePass()
     onWait = waitPass()
     onRide = ridingPass()
+    match = matches()
+    arr = arrived()
+    idle = idleDrivers()
     
     dLatLong = []
     pLatLong = []
@@ -42,7 +46,7 @@ def getstats():
         for i in passenger['hits']['hits']:
             pLatLong.append(i['_source']['location'])
 
-    return json.dumps({'actDrivers': ad, 'dLoc': dLatLong, 'actPass': ap, \
+    return json.dumps({'actDrivers': ad, 'match': match, 'arrived': arr, 'idle': idle, 'dLoc': dLatLong, 'actPass': ap, \
         'pLoc': pLatLong, 'onWait': onWait, 'onRide': onRide})
 
 def activeDrivers():
@@ -51,11 +55,22 @@ def activeDrivers():
     res = es.search(index='driver', doc_type='rolling', body=q, ignore=[404, 400])
     return res
 
+
 def activePass():
     q = {"size": size, "filter": {"range": { "ctime": { "gt": window }}}}
 
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
     return res
+
+def idleDrivers():
+    q = {
+        'query': { 'term': {'status': 'idle'} },
+        'filter': {'range': { 'ctime': { 'gt': window }} 
+            }
+        }
+    res = es.search(index='driver', doc_type='rolling', body=q, ignore=[404, 400])
+    return res['hits']["total"]
+
 
 def waitPass():
     q = {
@@ -75,4 +90,26 @@ def ridingPass():
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
     return res['hits']["total"]
 
+def arrived():
+    q = {
+    'query': { 'term': {'status': 'arrived'} },
+    'filter': {'range': { 'ctime': { 'gt': window }} 
+        }
+    }
+    res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
+    return res['hits']["total"]
+
+
+def matches():
+    q = { 
+    'query' : {
+        'constant_score' : {
+            'filter' : {
+                'exists' : { 'field' : 'match' }
+            }
+        }
+    }}
+    res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
+    
+    return res['hits']['total']
 

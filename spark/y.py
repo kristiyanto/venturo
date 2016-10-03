@@ -8,7 +8,11 @@ from elasticsearch import Elasticsearch
 from datetime import datetime
 from geopy.distance import vincenty, Point
 
-#park-submit --master local[*] --packages org.apache.spark:spark-streaming-kafka_2.10:1.6.1 --executor-memory 1G y.py
+# park-submit --master local[*] --packages org.apache.spark:spark-streaming-kafka_2.10:1.6.1 --executor-memory 1G y.py
+# spark-submit --master spark://ec2-54-71-28-156.us-west-2.compute.amazonaws.com:7077 --packages org.apache.spark:spark-streaming-kafka_2.10:1.6.1 y.py
+# yarn application -kill APPID
+
+
 conf = (SparkConf()
          .setAppName("Venturo for Insight")
          .set("spark.executor.memory", "3g")
@@ -19,40 +23,39 @@ sc = SparkContext(appName="trip")
 ssc = StreamingContext(sc, 3)
 sc.setLogLevel("WARN")    
 
-def assign(x):
-    
-    def convertTime(ctime):
-        try:
-            tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
-            ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-        except:
-            print "Time conversion failed"
-        return ctime
+def convertTime(ctime):
+    try:
+        tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
+        ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    except:
+        print "Time conversion failed"
+    return ctime
 
 
-    def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
-        cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
-        es = Elasticsearch(cluster, port=9200)
+def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
+    cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
+    es = Elasticsearch(cluster, port=9200)
 
-        ctime = convertTime(ctime)
+    ctime = convertTime(ctime)
 
-        res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
+    res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
 
-        if res['found'] and (res['_source']['status'] == status): 
-            return True
-        elif not res['found'] and status == 'idle': 
-            doc = {"status": "idle", "ctime": ctime, "location": location, \
+    if res['found'] and (res['_source']['status'] == status): 
+        return True
+    elif not res['found'] and status == 'idle': 
+        doc = {"status": "idle", "ctime": ctime, "location": location, \
                    'name': name}
-            doc = json.dumps(doc)
-            q = '{{"doc": {}, "doc_as_upsert": "true"}}'.format(doc)
-            res = es.update(index='driver', doc_type='rolling', id=driver, \
+        doc = json.dumps(doc)
+        q = '{{"doc": {}, "doc_as_upsert": "true"}}'.format(doc)
+        res = es.update(index='driver', doc_type='rolling', id=driver, \
                                 body=q)
-            return True
-        else:
-            return False
-
-
+        return True
+    else:
+        return False    
     
+
+def assign(x):
+     
     ctime = x['ctime']
     location = x['location']
     driver = x['id']
@@ -134,37 +137,7 @@ def assign(x):
 
 def pickup(x):
     
-    def convertTime(ctime):
-        try:
-            tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
-            ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-        except:
-            print "Time conversion failed"
-        return ctime
 
-
-    def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
-        cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
-        es = Elasticsearch(cluster, port=9200)
-
-        ctime = convertTime(ctime)
-
-        res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
-
-        if res['found'] and (res['_source']['status'] == status): 
-            return True
-        elif not res['found'] and status == 'idle': 
-            doc = {"status": "idle", "ctime": ctime, "location": location, \
-                   'name': name}
-            doc = json.dumps(doc)
-            q = '{{"doc": {}, "doc_as_upsert": "true"}}'.format(doc)
-            res = es.update(index='driver', doc_type='rolling', id=driver, \
-                                body=q)
-            return True
-        else:
-            return False
-    
-    
     ctime = x['ctime']
     location = x['location']
     driver = x['id']
@@ -242,38 +215,7 @@ def pickup(x):
     return res
 
 def onride(x):
-    def convertTime(ctime):
-        try:
-            tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
-            ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-        except:
-            print "Time conversion failed"
-        return ctime
 
-
-    def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
-        cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
-        es = Elasticsearch(cluster, port=9200)
-
-        ctime = convertTime(ctime)
-
-        res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
-
-        if res['found'] and (res['_source']['status'] == status): 
-            return True
-        elif not res['found'] and status == 'idle': 
-            doc = {"status": "idle", "ctime": ctime, "location": location, \
-                   'name': name}
-            doc = json.dumps(doc)
-            q = '{{"doc": {}, "doc_as_upsert": "true"}}'.format(doc)
-            res = es.update(index='driver', doc_type='rolling', id=driver, \
-                                body=q)
-            return True
-        else:
-            return False
-        
-    
-    
     ctime = x['ctime']
     location = x['location']
     driver = x['id']
@@ -333,36 +275,6 @@ def onride(x):
 
 
 def updatePass(x):
-    def convertTime(ctime):
-        try:
-            tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
-            ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-        except:
-            print "Time conversion failed"
-        return ctime
-
-
-    def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
-        cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
-        es = Elasticsearch(cluster, port=9200)
-
-        ctime = convertTime(ctime)
-
-        res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
-
-        if res['found'] and (res['_source']['status'] == status): 
-            return True
-        elif not res['found'] and status == 'idle': 
-            doc = {"status": "idle", "ctime": ctime, "location": location, \
-                   'name': name}
-            doc = json.dumps(doc)
-            q = '{{"doc": {}, "doc_as_upsert": "true"}}'.format(doc)
-            res = es.update(index='driver', doc_type='rolling', id=driver, \
-                                body=q)
-            return True
-        else:
-            return False    
-    
 
     
     passenger = {

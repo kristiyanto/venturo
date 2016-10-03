@@ -13,7 +13,7 @@
     <meta name="description" content="">
     <meta name="author" content=" Daniel Kristiyanto">
 
-    <title>Venturo! Swap right to the fun ride!</title>
+    <title>Venturo: Swipe right to your next ride!</title>
 
     <!-- Bootstrap Core CSS -->
     <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
@@ -59,7 +59,8 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="index.html"></a>
+                <div>&nbsp;</div>
+                <a class="navbar-brand" href="index.html">VENTURO: a ride-sharing platform for leissure. </a>
             </div>
              <!-- /.navbar-header -->
 
@@ -72,10 +73,25 @@
        
                             <!-- /input-group -->
                         <li>
+                            <a href="/"><i class="fa fa-clock-o fa-fw" id="clock"></i></a>
+                        </li>
+                        <li>
                             <a href="index.html"><i class="fa fa-dashboard fa-fw"></i> Main page</a>
                         </li>
                         <li>
-                            <a href="http://www.kristiyanto.me" target="_blank"><i class="fa fa-link fa-fw"></i> About Me</a>
+                            <a href="http://www.github.com/kristiyanto/venturo" target="_blank"><i class="fa fa-github fa-fw"></i> Github Repo</a>
+                        </li>
+                        <li>
+                            <a href="http://slides.venturo.kristiyanto.me" target="_blank"><i class="fa fa-slideshare fa-fw"></i> Slides</a>
+                        </li>
+                        <li>
+                            <a href="http://linkedin.com/in/kristiyanto" target="_blank"><i class="fa fa-linkedin-square fa-fw"></i> LinkedIn Profile</a>
+                        </li>
+                        <li>
+                            <a href="http://students.washington.edu/danielkr" target="_blank"><i class="fa fa-user fa-fw"></i> About Me</a>
+                        </li>
+                        <li>
+                            <a href="http://students.washington.edu/danielkr/resume.pdf" target="_blank"><i class="fa fa-file-pdf-o fa-fw"></i> Resume</a>
                         </li>
  
                             <!-- /.nav-second-level -->
@@ -102,7 +118,7 @@
             <!-- /.row -->        
             <div class="row">
                 <div class="col-lg-12">
-                    <h1 class="page-header" id="clock">... past 2 hours:</h1>
+                    <h1 class="page-header">Current Stats (2 hours window)</h1>
                 </div>
                 <!-- /.col-lg-12 -->
             </div>
@@ -123,7 +139,9 @@
                         </div>
                         <a href="#">
                             <div class="panel-footer">
-                                <span class="pull-left">{date}</span>
+                                <span class="pull-left">Idle drivers:  &nbsp;</span>
+                                <span class="pull-left" id="idle">0</span>
+
                                 <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
                                 <div class="clearfix"></div>
                             </div>
@@ -145,7 +163,8 @@
                         </div>
                         <a href="#">
                             <div class="panel-footer">
-                                <span class="pull-left">View Details</span>
+                                <span class="pull-left">Arrived to destination: &nbsp; </span>
+                                <span class="pull-left", id="arr">0</span>
                                 <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
                                 <div class="clearfix"></div>
                             </div>
@@ -161,13 +180,14 @@
                                 </div>
                                 <div class="col-xs-9 text-right">
                                     <div class="huge" id="onRide">0</div>
-                                    <div>On the ride</div>
+                                    <div>On going trips</div>
                                 </div>
                             </div>
                         </div>
                         <a href="#">
                             <div class="panel-footer">
-                                <span class="pull-left">View Details</span>
+                                <span class="pull-left">Total shared ride (all time): &nbsp; </span>
+                                <span class="pull-left", id="match">0</span>
                                 <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
                                 <div class="clearfix"></div>
                             </div>
@@ -189,7 +209,7 @@
                         </div>
                         <a href="#">
                             <div class="panel-footer">
-                                <span class="pull-left">View Details</span>
+                                <span class="pull-left">Average waiting time: </span>
                                 <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
                                 <div class="clearfix"></div>
                             </div>
@@ -199,6 +219,23 @@
             </div>
             <!-- /.row -->
 
+                    <div class="row">
+                <div class="col-lg-4">
+                    <div class="panel panel-info">
+                        <div class="panel-heading">
+                        Happening
+                        </div>
+                        <div class="panel-body">
+                            <p id=#newsflash></p>
+                        </div>
+                        <div class="panel-footer">
+                            Panel Footer
+                        </div>
+                    </div>
+                </div>
+                                    
+                        
+                        
         </div>
         <!-- /#page-wrapper -->
 
@@ -245,7 +282,7 @@
         h = fixTimeFormat(today.getHours()),
         m = fixTimeFormat(today.getMinutes()),
         s = fixTimeFormat(today.getSeconds());
-     document.getElementById("clock").innerHTML = h + ":" + m + ":" + s;
+     document.getElementById("clock").innerHTML = "&nbsp;" + h + ":" + m + ":" + s;
     
     $.getJSON( "stats", function( data ) {
       var items = [];
@@ -256,19 +293,23 @@
       $("#actPass").html(data.actPass);
       $("#onRide").html(data.onRide);
       $("#onWait").html(data.onWait);
+      $("#arr").html(data.arrived);
+      $("#match").html(data.match);
+      $("#idle").html(data.idle);
+        
 
 
       for (var drv = 0; drv < data.dLoc.length; drv++) {
         var circle = L.circle(data.dLoc[drv], 30, {
         color: 'blue',
-        fillColor: 'blue',
+        //fillColor: 'blue',
         fillOpacity: 0.2
         }).addTo(mymap);
         }
         
         
       for (var pass = 0; pass < data.pLoc.length; pass++) {
-        var circle = L.circle(data.pLoc[pass], 10, {
+        var circle = L.circle(data.pLoc[pass], 8, {
         color: 'green',
         fillColor: 'green',
         fillOpacity: 0.5
