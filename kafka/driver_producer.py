@@ -1,6 +1,6 @@
 # This is the script to populate driver's Data
 # {driver_id, time, curr_lat, curr_long, dest, load}
-total_drivers = 500
+total_drivers = 100 
 
 
 import time
@@ -19,7 +19,7 @@ from elasticsearch import Elasticsearch
         Set the geographical boundaries and other variables
 '''
 boundaries_file = "boundaries.csv"
-city = 'NYC'
+city = random.choice(['CHI'])
 
 getcontext().prec=6
 step_to_dest = random.randrange(1,2)
@@ -64,6 +64,7 @@ def simulateTrip(id, city):
 def generateDriver(city):
     d_id = random.randint(1, total_drivers)
     driver_mapping ={ 
+            'city': city,
             'name': 'driver_{}'.format(d_id),
             'id': d_id,
             'status': 'idle',

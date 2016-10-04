@@ -15,6 +15,7 @@ from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from datetime import datetime
 from decimal import *
 
+city = random.choice(['CHI'])
 
 ### Global 
 getcontext().prec=6
@@ -42,17 +43,29 @@ def loadBoundaries(boundaries_file):
     f.close()
     return boundaries
 
-def loadTattraction(tourist_attractions):
+def loadTattraction(tourist_attractions, city):
     # This chunck of code is to be replaced with Yelp API, or recommender systems
     attr = {}
     with open(tourist_attractions, 'r') as f:
         reader = csv.reader(f, delimiter = ',')
         for row in reader:
-            name = row[1]
-            loc = [float(row[2]), float(row[3])]
-            attr.update({name:loc})
+            if row[0] == city:
+                name = row[1]
+                loc = [float(row[2]), float(row[3])]
+                attr.update({name:loc})
     f.close()
     return attr
+
+def retention(passanger):
+    q = {
+    'query': { 'term': {'status': 'arrived'} },
+    'filter': {'range': { 'ctime': { 'gt': window }} 
+        }
+    }
+    res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
+    return res['hits']["total"]
+
+
 
 def generatePassenger(city):
     global last_uid 
@@ -63,6 +76,7 @@ def generatePassenger(city):
     curr_long = round(random.uniform(float(bnd[1]), float(bnd[3])),4)
     att = random.sample(attract.items(),3)
     pass_mapping = {
+            'city': city,
             'name': "passenger_{}".format(last_uid),
             'id': last_uid,
             'status': 'wait',
@@ -79,26 +93,34 @@ def generatePassenger(city):
             'origin': [curr_lat, curr_long],
           }
     return(pass_mapping)
-
-    q = es.get(index='passenger', doc_type='rolling', id=d_id, ignore=[404, 400])
+    
+    q = es.get(index='passenger', doc_type='rolling', id=last_uid, ignore=[404, 400])
     if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
         driver_mapping = q['_source']
         driver_mapping['ctime'] = str(datetime.now())
+    if q['found'] and (q['_source']['status'] in ['arrived']): 
+        driver_mapping = q['_source']
+        t = datetime.strptime("{}".format(driver_mapping['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ')
+        if t < (datetime.today() - timedelta(hours = 3)):
+            print('{} recycled'.format(last_uid))
+            doc = json.dumps(pass_mapping)
+            q = '{{"doc": {}}}'.format(doc)
+            es.update(index='passenger', doc_type='rolling', id=last_uid, body=q)
     return(driver_mapping)
 
 
     
 # Read the boundaries
 bound = loadBoundaries(boundaries_file)
-attract = loadTattraction(tourist_attractions)
+attract = loadTattraction(tourist_attractions, city)
 
 # Generate users
 print("Generating {} passengers...".format(totalPassenger))
 for n in range(totalPassenger):
-        user = generatePassenger('NYC')
+        user = generatePassenger(city)
         u_json = json.dumps(user).encode('utf-8')
         key = json.dumps(user['id']).encode('utf-8')
-        #print(u_json)
+        print(u_json)
         producer.send(b'psg', key, u_json)
         #time.sleep(2)
         
