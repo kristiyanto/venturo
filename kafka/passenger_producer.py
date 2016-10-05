@@ -102,7 +102,6 @@ def generatePassenger(city):
         pass_mapping = q['_source']
         t = datetime.strptime("{}".format(pass_mapping['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ')
         if t < (datetime.today() - timedelta(hours = 3)):
-            print('{} recycled'.format(last_uid))
             doc = json.dumps(pass_mapping)
             q = '{{"doc": {}}}'.format(doc)
             es.update(index='passenger', doc_type='rolling', id=last_uid, body=q)

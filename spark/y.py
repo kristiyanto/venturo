@@ -70,7 +70,7 @@ def assign(x):
     es = Elasticsearch(cluster, port=9200)
     
     def nearby(ctime, location, driver, name, p1=None, p2=None):    
- 
+        if location == None: sys.exit("Driver {}  Name {} P1 {} P2 {}".format(driver, name, p1, p2))
         geo_query = { "from" : 0, "size" : 1,
                       "query": {
                    "filtered": {
@@ -82,10 +82,11 @@ def assign(x):
                             "distance_type": "plane", 
                             "location": location }}
                 }}}
-
+    
+    
         res = es.search(index='passenger', doc_type='rolling', body=geo_query, ignore=[404, 400])
-
-        if len(res['hits']['hits'])>0: 
+    
+        if res['hits']['hits']: 
             passenger = res['hits']['hits'][0]["_source"]
             doc = json.dumps({"status": "pickup", "driver": driver})
             q = '{{"doc": {}}}'.format(doc)
@@ -109,7 +110,6 @@ def assign(x):
             q = '{{"doc": {}, "doc_as_upsert": "true"}}'.format(doc)
             res = es.update(index='driver', doc_type='rolling', id=driver, \
                             body=q)
-            return doc
         else:
             isKnown = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])['found']
 
@@ -119,7 +119,7 @@ def assign(x):
             q = '{{"doc": {}}}'.format(doc)
             res = es.update(index='driver', doc_type='rolling', id=driver, \
                                 body=q)
-            return doc
+        return doc
     def isFull(driver):
         _driver = es.get(index='driver', doc_type='rolling', id=1, ignore=[400, 404])
         if _driver['found']:
@@ -286,7 +286,7 @@ def updatePass(x):
 
     
     passenger = {
-        #'city' : x['city'],
+        'city' : x['city'],
         'ctime' : x['ctime'],
         'location' : x['location'],
         'id' : x['id'],
@@ -336,7 +336,7 @@ def main():
     riding = D.filter(lambda x: x['status']=='ontrip').map(onride)
     P = passenger.map(lambda x: json.loads(x[1])).map(updatePass)
     
-
+    D.pprint()
     idle.pprint()
     pick.pprint()
     secondPsg.pprint()
