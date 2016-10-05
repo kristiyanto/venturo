@@ -42,8 +42,8 @@ def sanityCheck(status, ctime, city, location, driver, name=None, p1=None, p2=No
         doc = {"status": "idle", "ctime": ctime, "location": location, \
                    'name': name, 'city': city}
         doc = json.dumps(doc)
-        q = '{{"doc": {},  "doc_as_upsert" : true}}'.format(doc)
-        res = es.create(index='driver', doc_type='rolling', id=driver, \
+        q = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)
+        res = es.update(index='driver', doc_type='rolling', id=driver, \
                                 body=q)
         return True
     else:

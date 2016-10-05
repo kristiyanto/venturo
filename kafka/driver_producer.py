@@ -108,6 +108,6 @@ for n in range(total_drivers):
     driver = generateDriver(city)
     u_json = json.dumps(driver).encode('utf-8')
     key = json.dumps(driver['id']).encode('utf-8')
-    #print('{}'.format(driver))
+    print('{}'.format(driver))
     producer.send(b'drv', key, u_json)
 kafka.close()
