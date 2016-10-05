@@ -87,11 +87,18 @@ def generateDriver(city):
         driver_mapping['p1'] = q['_source']['p1']
         driver_mapping['destination'] = q['_source']['destination']
         driver_mapping['destinationid'] = q['_source']['destinationid']
-        
         try:
             driver_mapping['p2'] = q['_source']['p2']
         except: 
             pass
+    if q['found'] and (q['_source']['status'] in ['arrived']):
+        driver_mapping = q['_source']
+        t = datetime.strptime("{}".format(driver_mapping['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ')
+        if t < (datetime.today() - timedelta(hours = 3)):
+            print('{} recycled'.format(last_uid))
+            doc = json.dumps(driver_mapping)
+            q = '{{"doc": {}}}'.format(doc)
+            es.update(index='driver', doc_type='rolling', id=last_uid, body=q)
     return(driver_mapping)
 
 bound = loadBoundaries(boundaries_file)

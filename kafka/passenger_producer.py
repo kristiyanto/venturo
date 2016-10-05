@@ -96,17 +96,17 @@ def generatePassenger(city):
     
     q = es.get(index='passenger', doc_type='rolling', id=last_uid, ignore=[404, 400])
     if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
-        driver_mapping = q['_source']
-        driver_mapping['ctime'] = str(datetime.now())
+        pass_mapping = q['_source']
+        pass_mapping['ctime'] = str(datetime.now())
     if q['found'] and (q['_source']['status'] in ['arrived']): 
-        driver_mapping = q['_source']
-        t = datetime.strptime("{}".format(driver_mapping['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ')
+        pass_mapping = q['_source']
+        t = datetime.strptime("{}".format(pass_mapping['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ')
         if t < (datetime.today() - timedelta(hours = 3)):
             print('{} recycled'.format(last_uid))
             doc = json.dumps(pass_mapping)
             q = '{{"doc": {}}}'.format(doc)
             es.update(index='passenger', doc_type='rolling', id=last_uid, body=q)
-    return(driver_mapping)
+    return(pass_mapping)
 
 
     
@@ -120,8 +120,8 @@ for n in range(totalPassenger):
         user = generatePassenger(city)
         u_json = json.dumps(user).encode('utf-8')
         key = json.dumps(user['id']).encode('utf-8')
-        #print(u_json)
+        print(u_json)
         producer.send(b'psg', key, u_json)
-        time.sleep(2)
+        #time.sleep(2)
         
 
