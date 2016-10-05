@@ -28,7 +28,7 @@ def convertTime(ctime):
     return ctime
 
 
-def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
+def sanityCheck(status, ctime, city, location, driver, name=None, p1=None, p2=None):
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
     es = Elasticsearch(cluster, port=9200)
 
@@ -40,10 +40,10 @@ def sanityCheck(status, ctime, location, driver, name=None, p1=None, p2=None):
         return True
     elif not res['found'] and status == 'idle': 
         doc = {"status": "idle", "ctime": ctime, "location": location, \
-                   'name': name}
+                   'name': name, 'city': city}
         doc = json.dumps(doc)
-        q = '{{"doc": {}, "doc_as_upsert": "true"}}'.format(doc)
-        res = es.update(index='driver', doc_type='rolling', id=driver, \
+        q = '{{"doc": {},  "doc_as_upsert" : true}}'.format(doc)
+        res = es.create(index='driver', doc_type='rolling', id=driver, \
                                 body=q)
         return True
     else:
@@ -57,7 +57,7 @@ def elapsedTime(t1, ctime):
     
 
 def assign(x):
-    #city = x['city']
+    city = x['city']
     ctime = x['ctime']
     location = x['location']
     driver = x['id']
@@ -130,7 +130,7 @@ def assign(x):
         else:
             return False
         
-    if sanityCheck(status, ctime, location, driver, name, p1=None, p2=None) and not isFull(driver):
+    if sanityCheck(status, ctime, city, location, driver, name, p1=None, p2=None) and not isFull(driver):
         res = nearby(ctime, location, driver, name, p1, p2)
     else:
         res = "{'Message is not sane. Discarded'}"
@@ -139,7 +139,7 @@ def assign(x):
 
 def pickup(x):
     
-    
+    city = x['city']
     ctime = x['ctime']
     location = x['location']
     driver = x['id']
@@ -215,12 +215,12 @@ def pickup(x):
                             body=q)
             
         return doc
-    res = hopOn(ctime, location, driver, name, p1, p2) if sanityCheck(status, ctime, location, driver) else '{invalid}'
+    res = hopOn(ctime, location, driver, name, p1, p2) if sanityCheck(status, ctime, city, location, driver) else '{invalid}'
 
     return res
 
 def onride(x):
-
+    city = x['city']
     ctime = x['ctime']
     location = x['location']
     driver = x['id']
@@ -273,7 +273,7 @@ def onride(x):
             res = es.update(index='passenger', doc_type='rolling', id=p2, \
                             body=q_)
                 
-    if  sanityCheck(status, ctime, location, driver, name):
+    if  sanityCheck(status, ctime, city, location, driver, name):
         res = arrived(ctime, location, dest, driver, name, p1, p2)
     else:
         res = '{invalid message}'

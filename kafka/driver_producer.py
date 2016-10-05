@@ -51,12 +51,13 @@ def loadBoundaries(boundaries_file):
 def simulateTrip(id, city):
     bnd = bound[city]
     q = es.get(index='driver', doc_type='rolling', id=id, ignore=[404, 400])
-    if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
-        d = q['_source']['destination']
-        c = q['_source']['location']
-        la = Decimal(c[0]) + (((Decimal(d[0]) - Decimal(c[0]))/step_to_dest))
-        lo = Decimal(c[1]) + (((Decimal(d[1]) - Decimal(c[1]))/step_to_dest))
-        return [float(str(la)), float(str(lo))]
+    if q['found']:
+        if (q['_source']['status'] in ['ontrip', 'pickup']): 
+            d = q['_source']['destination']
+            c = q['_source']['location']
+            la = Decimal(c[0]) + (((Decimal(d[0]) - Decimal(c[0]))/step_to_dest))
+            lo = Decimal(c[1]) + (((Decimal(d[1]) - Decimal(c[1]))/step_to_dest))
+            return [float(str(la)), float(str(lo))]
     else:
         return [round(random.uniform(float(bnd[0]), float(bnd[2])),4),\
                 round(random.uniform(float(bnd[1]), float(bnd[3])),4)]
