@@ -57,7 +57,7 @@ def elapsedTime(t1, ctime):
     
 
 def assign(x):
-     
+    #city = x['city']
     ctime = x['ctime']
     location = x['location']
     driver = x['id']
@@ -139,7 +139,7 @@ def assign(x):
 
 def pickup(x):
     
-
+    
     ctime = x['ctime']
     location = x['location']
     driver = x['id']
@@ -284,6 +284,7 @@ def updatePass(x):
 
     
     passenger = {
+        #'city' : x['city'],
         'ctime' : x['ctime'],
         'location' : x['location'],
         'id' : x['id'],

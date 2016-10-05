@@ -193,7 +193,7 @@
                         </div>
                         <a href="#">
                             <div class="panel-footer">
-                                <span class="pull-left">Total match (all time): &nbsp; </span>
+                                <span class="pull-left">Total match: &nbsp; </span>
                                 <span class="pull-left", id="match">0</span>
                                 <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
                                 <div class="clearfix"></div>
@@ -233,11 +233,11 @@
                 <div class="col-lg-6">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            Happening
+                            Matches
                         </div>
                         <!-- /.panel-heading -->
                         <div class="panel-body">
-                            <div id="event"></div>
+                            <a href="javascript:centerIt()"><div id="event"></div></a>
                         </div>
                         <!-- /.panel-body -->
                     </div>
@@ -247,11 +247,11 @@
                 <div class="col-lg-6">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            Passengers
+                            Trip completed
                         </div>
                         <!-- /.panel-heading -->
                         <div class="panel-body">
-                            <div id="arrMsg"></div>
+                            <a href="javascript:centerIt2()"><div id="arrMsg"></div></a>
                         </div>
                         <!-- /.panel-body -->
                     </div>
@@ -290,8 +290,6 @@
     var DATA;
         
 
-      
-        
     function currentTime()
     {
      function fixTimeFormat(i) {
@@ -325,6 +323,7 @@
         
         
     $.getJSON( "stats", function( data ) {
+      DATA = data;
       var items = [];
       $.each(data, function(key, val ) {
             // document.getElementsByTagName("activedriver")[0].innerHTML = key
@@ -355,7 +354,6 @@
       fillOpacity: 0.5
       }).addTo(mymap);
         
-         
 
       for (var drv = 0; drv < data.dLoc.length; drv++) {
         var circle = L.circle(data.dLoc[drv], 30, {
@@ -382,10 +380,15 @@
     $(function () {
 
     setInterval(currentTime, 2000);
-
     });
-        
+    
+    function centerIt(){
+     mymap.panTo(DATA.mLoc);
+    }
 
+    function centerIt2(){
+     mymap.panTo(DATA.arrMsgLoc);
+    }
 
         
 

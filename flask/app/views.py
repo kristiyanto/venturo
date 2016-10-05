@@ -109,14 +109,17 @@ def arrived():
 
 
 def matches():
-    q = { 
+
+    q = { 'size': 1,
     'query' : {
         'constant_score' : {
+            'query': {'exists' : { 'field' : 'match' }},
             'filter' : {
-                'exists' : { 'field' : 'match' }
+                'range': { 'ctime': { 'gt': window }}
             }
         }
     }}
+    
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
     
     return res['hits']['total']
@@ -136,11 +139,12 @@ def avgWait():
         res = "N/A"
     return res
 def matchMsg():
-    q = {'size': 1,
-    "query" : {
-        "constant_score" : {
-            "filter" : {
-                "exists" : { "field" : "match" }
+    q = { 'size': 1,
+    'query' : {
+        'constant_score' : {
+            'query': {'exists' : { 'field' : 'match' }},
+            'filter' : {
+                'range': { 'ctime': { 'gt': window }}
             }
         }
     },
@@ -161,11 +165,12 @@ def matchMsg():
     return msg
 
 def arrivedMsg():
-    q = {'size': 1,
-    "query" : {
-        "constant_score" : {
-            "filter" : {
-                "exists" : { "field" : "arrived" }
+    q = { 'size': 1,
+    'query' : {
+        'constant_score' : {
+            'query': {'term' : { 'status' : 'arrived' }},
+            'filter' : {
+                'range': { 'ctime': { 'gt': window }}
             }
         }
     },
@@ -173,14 +178,15 @@ def arrivedMsg():
     {
       "ctime": {
         "order": "desc"
-      }
-    }]
+      }}]
     }
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
+
+
     if len(res['hits']['hits']) > 0:
         res = res['hits']['hits'][0]['_source']
-        msg = ["Passenger {} just arrived to {}".format(\
-            res['id'], res['match'], res['destinationid']), res['location']]
+        msg = ["Driver {} just arrived to {}".format(\
+            res['driver'], res['destinationid']), res['location']]
     else:
         msg = ["Nothing happens", [0,0]]
     return msg

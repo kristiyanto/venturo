@@ -12,7 +12,7 @@ import time
 import json
 
 from kafka import KafkaClient, KeyedProducer, SimpleConsumer
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import *
 
 city = random.choice(['CHI'])
@@ -120,8 +120,8 @@ for n in range(totalPassenger):
         user = generatePassenger(city)
         u_json = json.dumps(user).encode('utf-8')
         key = json.dumps(user['id']).encode('utf-8')
-        print(u_json)
+        #print(u_json)
         producer.send(b'psg', key, u_json)
-        #time.sleep(2)
+        time.sleep(2)
         
 
