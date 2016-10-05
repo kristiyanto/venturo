@@ -167,12 +167,7 @@ def matchMsg():
 def arrivedMsg():
     q = { 'size': 1,
     'query' : {
-        'constant_score' : {
-            'query': {'term' : { 'status' : 'arrived' }},
-            'filter' : {
-                'range': { 'ctime': { 'gt': window }}
-            }
-        }
+            'term' : { 'status' : 'arrived' }
     },
     "sort": [
     {
@@ -186,7 +181,7 @@ def arrivedMsg():
     if len(res['hits']['hits']) > 0:
         res = res['hits']['hits'][0]['_source']
         msg = ["Driver {} just arrived to {}".format(\
-            res['driver'], res['destinationid']), res['location']]
+            res['id'], res['destinationid']), res['destination']]
     else:
         msg = ["Nothing happens", [0,0]]
     return msg

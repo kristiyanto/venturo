@@ -3,7 +3,7 @@
 # for the stream. Ideally, this would come from User.
 # Boundaries.csv contains information about the location boundaries for the generation.
 
-totalPassenger = 2000
+totalPassenger = 5000
 # Once generated, the request then sent to Kafka.
 
 import csv
@@ -15,7 +15,7 @@ from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from datetime import datetime, timedelta
 from decimal import *
 
-city = random.choice(['CHI'])
+city = random.choice(['CHI','SFO','NYC'])
 
 ### Global 
 getcontext().prec=6

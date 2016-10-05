@@ -1,6 +1,6 @@
 # This is the script to populate driver's Data
 # {driver_id, time, curr_lat, curr_long, dest, load}
-total_drivers = 1000 
+total_drivers = 3000 
 
 
 import time
@@ -19,7 +19,7 @@ from elasticsearch import Elasticsearch
         Set the geographical boundaries and other variables
 '''
 boundaries_file = "boundaries.csv"
-city = random.choice(['CHI'])
+city = random.choice(['CHI','NYC','SFO'])
 
 getcontext().prec=6
 step_to_dest = random.randrange(1,2)

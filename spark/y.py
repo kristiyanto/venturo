@@ -257,6 +257,8 @@ def onride(x):
         if isArrived: 
             doc['status'] = "arrived"
             doc_['status'] = "arrived"
+            doc['location'] = dest
+            doc_['location'] = dest
         
 
         doc = json.dumps(doc)
