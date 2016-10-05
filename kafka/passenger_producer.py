@@ -15,7 +15,7 @@ from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from datetime import datetime, timedelta
 from decimal import *
 
-city = random.choice(['CHI','SFO','NYC'])
+city = random.choice(['CHI','NYC'])
 
 ### Global 
 getcontext().prec=6
@@ -69,7 +69,7 @@ def retention(passanger):
 
 def generatePassenger(city):
     global last_uid 
-    last_uid += 1
+    last_uid = random.randint(1, totalPassenger)
     bnd = bound[city]
     
     curr_lat = round(random.uniform(float(bnd[0]), float(bnd[2])),4)

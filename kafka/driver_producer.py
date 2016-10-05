@@ -1,6 +1,6 @@
 # This is the script to populate driver's Data
 # {driver_id, time, curr_lat, curr_long, dest, load}
-total_drivers = 3000 
+total_drivers = 5000
 
 
 import time
@@ -19,7 +19,7 @@ from elasticsearch import Elasticsearch
         Set the geographical boundaries and other variables
 '''
 boundaries_file = "boundaries.csv"
-city = random.choice(['CHI','NYC','SFO'])
+city = random.choice(['CHI','NYC'])
 
 getcontext().prec=6
 step_to_dest = random.randrange(1,2)
@@ -58,10 +58,10 @@ def simulateTrip(id, city):
             la = Decimal(c[0]) + (((Decimal(d[0]) - Decimal(c[0]))/step_to_dest))
             lo = Decimal(c[1]) + (((Decimal(d[1]) - Decimal(c[1]))/step_to_dest))
             return [float(str(la)), float(str(lo))]
-    else:
-        return [round(random.uniform(float(bnd[0]), float(bnd[2])),4),\
+
+    return [round(random.uniform(float(bnd[0]), float(bnd[2])),4),\
                 round(random.uniform(float(bnd[1]), float(bnd[3])),4)]
-    
+
 def generateDriver(city):
     d_id = random.randint(1, total_drivers)
     driver_mapping ={ 
@@ -93,13 +93,11 @@ def generateDriver(city):
         except: 
             pass
     if q['found'] and (q['_source']['status'] in ['arrived']):
-        driver_mapping = q['_source']
         t = datetime.strptime("{}".format(driver_mapping['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ')
         if t < (datetime.today() - timedelta(hours = 3)):
-            print('{} recycled'.format(last_uid))
             doc = json.dumps(driver_mapping)
             q = '{{"doc": {}}}'.format(doc)
-            es.update(index='driver', doc_type='rolling', id=last_uid, body=q)
+            es.delete(index='driver', doc_type='rolling', id=last_uid)
     return(driver_mapping)
 
 bound = loadBoundaries(boundaries_file)
