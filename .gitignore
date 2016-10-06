@@ -5,4 +5,6 @@
 *.lck
 *.ctrl
 *.swp
-
+.ipynb_checkpoints
+metastore_db
+metastore_db/*
