@@ -82,6 +82,12 @@ Hosted in Amazon S3 with 3 m3.large instances for Spark Processing and 4 m3. med
 The platform was tested to handle 3000 active drivers and 5000 passangers in a continues datastream on the forementioned infrastructure. 
 
 
+# Doker Approach
+An alternate approach was also evaluated and performed by containerizing Kafka Consumer and run it on Google Contaniner on Google Cloud Platform. 
+
+
+
+
 # About
 An Insight Data Science project by Daniel Kristiyanto.
 
