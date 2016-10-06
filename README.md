@@ -84,6 +84,7 @@ The platform was tested to handle 3,000 active drivers and 5,000 passangers in a
 
 # Docker Approach
 <img src="media/docker.png" width="500px" />
+
 An alternate approach was also evaluated and performed by containerizing Kafka Consumer and run it on Google Contaniner on Google Cloud Platform. 
 
 
