@@ -6,7 +6,7 @@ Venturo is a ridesharing platform with common destinations, e.g. to complement c
 
 ## Demo
 Demo available at:
-[Demo Video]<img src="media/youtube.png">(https://youtu.be/GpJAtzlqFNk)
+[![Demo Video](media/youtube.png)](https://youtu.be/GpJAtzlqFNk)
 
 
 ## Data
