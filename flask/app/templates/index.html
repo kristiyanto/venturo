@@ -56,7 +56,7 @@
             <div class="navbar-header">
                 <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
                     <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"><a class="btn btn-block btn-social btn-bitbucket"> <i class="fa fa-paperplane"></i>Chicago</a></span>
+                    <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
@@ -94,9 +94,10 @@
                         <li>
                             <a href="http://students.washington.edu/danielkr/resume.pdf" target="_blank"><i class="fa fa-file-pdf-o fa-fw"></i> Resume</a>
                         </li>
-                        <li> <a href="/"><i class="fa fa-clock-o fa-fw" id="clock"></i></a> </li>
-                        <li></li>
-                        <li><a class="btn btn-block btn-social btn-bitbucket"><i class="fa fa-paperplane"></i>New York</a></li>
+                        <li> <a href="/"><i class="fa fa-clock-o fa-fw" id="clock"></i></a></li>
+                        <li><a href="javascript:centerChicago()"><i class="fa fa-paperplane">FLY TO</i></li>
+                        <li><a href="javascript:centerChicago()"><i class="fa fa-paperplane">Chicago</i></a></li>
+                        <li><a href="javascript:centerNY()"><i class="fa fa-paperplane">New York</i></a></li>
  
                             <!-- /.nav-second-level -->
                         
@@ -387,7 +388,15 @@
     function centerIt(){
      mymap.panTo(DATA.mLoc);
     }
-
+    
+    function centerChicago(){
+     mymap.panTo([41.8781, -87.6298], 13);
+    }
+        
+    function centerNY(){
+     mymap.panTo([40.7128, -74.0059],13);
+    }
+        
     function centerIt2(){
      mymap.panTo(DATA.arrMsgLoc);
     }
