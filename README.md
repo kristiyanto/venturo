@@ -1,5 +1,5 @@
 # VENTURO
-"Swipe right to your next adventurous ride"
+*Swipe right to your next adventurous ride*
 
 
 Venturo is a ridesharing platform with common destinations, e.g. to complement city passes. Users select multiple destinations and matched with a driver and other users. Currently serving 2 cities: Chicago and New York City.
