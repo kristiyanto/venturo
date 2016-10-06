@@ -50,6 +50,9 @@ Other queries that performed internally:
 - Check nearby passengers
 
 ## Architecture
+
+<img src="media/architecture.png" width=500px />
+
 __Ingestion layer__
 
 Data streams for passengers and drivers generated separately in python (Kafka producers) and ingested in Kafka as different topics. Kafka is set with 4 hours retention policy.
