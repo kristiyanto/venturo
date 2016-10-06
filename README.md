@@ -70,7 +70,7 @@ The output is served as API by using Flask, output intended  mainly for dashboar
 For Dashboard: Bootstrap2, jquery, and leaflet are used to prettify the output.
 
 # Infrastructure
-Hosted in Amazon S3 with 3 m3.large instances for Spark Processing and 4 m3. medium instances  other services (multitenant).
+Hosted in Amazon S3 with 3 m3.large instances for Spark Processing and 4 m3. medium instances for other services (multitenant).
 
 # Performance
 The platform was tested to handle 3000 active drivers and 5000 passangers in a continues datastream on the forementioned infrastructure. 
