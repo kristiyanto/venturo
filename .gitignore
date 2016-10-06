@@ -6,3 +6,4 @@ metastore_db/*
 *.lck
 *.ctrl
 *.swp
+metastore_db
