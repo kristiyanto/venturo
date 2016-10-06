@@ -79,12 +79,12 @@ For Dashboard: Bootstrap2, jquery, and leaflet are used to prettify the output.
 Hosted in Amazon S3 with 3 m3.large instances for Spark Processing and 4 m3. medium instances for other services (multitenant).
 
 # Performance
-The platform was tested to handle 3000 active drivers and 5000 passangers in a continues datastream on the forementioned infrastructure. 
+The platform was tested to handle 3,000 active drivers and 5,000 passangers in a continues datastream on the forementioned infrastructure. 
 
 
-# Doker Approach
+# Docker Approach
+<img src="media/docker.png" widh="500px" />
 An alternate approach was also evaluated and performed by containerizing Kafka Consumer and run it on Google Contaniner on Google Cloud Platform. 
-
 
 
 
