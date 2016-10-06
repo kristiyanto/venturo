@@ -1,4 +1,6 @@
-# VENTURO
+[!Insight Data Engineering](media/insight.png)
+
+# VENTURO: an Insight data science project
 *Swipe right to your next adventurous ride*
 
 
