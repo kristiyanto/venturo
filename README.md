@@ -9,6 +9,7 @@ Demo available at:
 
 ## Data
 The plaform takes 2 data stream, both in JSON format:
+
 1. 🙋 From passenger : {id, current location, status, destinations ..}
 
 2. 🚕 From the driver: {id, current location, status, destination, passenger, ..}
@@ -48,4 +49,10 @@ __Sink__
 Elasticsearch is used as the buffer/transactional interface for the resulted messages
 
 __Output__
-Output is served as API by using Flask. 
+Output is served as API by using Flask. Bootstrap2, jquery and leaflet is used to prettify the output.
+
+
+
+# Contact
+An Insight Data Science project by Daniel Kristiyanto.
+Palo Alto, California -- Autumn, 2016.
