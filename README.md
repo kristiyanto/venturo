@@ -47,7 +47,8 @@ The stats:
 - Average waiting time: in seconds, the average time between waiting for passengers to the time passengers hop on into the car.
 
 Other queries that performed internally:
-- Check nearby passengers
+- Check nearby passengers for driver assigments
+- Current location to perform simulation (called by Kafka Producer)
 
 ## Architecture
 
@@ -57,7 +58,7 @@ __Ingestion layer__
 
 Data streams for passengers and drivers generated separately in python (Kafka producers) and ingested in Kafka as different topics. Kafka is set with 4 hours retention policy.
 
-Secor is used to saving all raw streams into Amazon S3 for later purposes (batch, re-play, forensics, or analytics).
+[Secor](https://github.com/pinterest/secor) is used to saving all raw streams into Amazon S3 for later purposes (batch, re-play, forensics, or analytics).
 
 __Stream processing__
 
@@ -77,6 +78,7 @@ Hosted in Amazon S3 with 3 m3.large instances for Spark Processing and 4 m3. med
 
 # Performance
 The platform was tested to handle 3000 active drivers and 5000 passangers in a continues datastream on the forementioned infrastructure. 
+
 
 # About
 An Insight Data Science project by Daniel Kristiyanto.
