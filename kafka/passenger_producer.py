@@ -3,7 +3,7 @@
 # for the stream. Ideally, this would come from User.
 # Boundaries.csv contains information about the location boundaries for the generation.
 
-totalPassenger = 5000
+totalPassenger = 3000
 # Once generated, the request then sent to Kafka.
 
 import csv
@@ -15,7 +15,7 @@ from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from datetime import datetime, timedelta
 from decimal import *
 
-city = random.choice(['CHI','NYC'])
+#city = random.choice(['CHI','NYC'])
 
 ### Global 
 getcontext().prec=6
@@ -71,7 +71,7 @@ def generatePassenger(city):
     global last_uid 
     last_uid = random.randint(1, totalPassenger)
     bnd = bound[city]
-    
+    attract = loadTattraction(tourist_attractions, city)
     curr_lat = round(random.uniform(float(bnd[0]), float(bnd[2])),4)
     curr_long = round(random.uniform(float(bnd[1]), float(bnd[3])),4)
     att = random.sample(attract.items(),3)
@@ -101,26 +101,28 @@ def generatePassenger(city):
     if q['found'] and (q['_source']['status'] in ['arrived']): 
         pass_mapping = q['_source']
         t = datetime.strptime("{}".format(pass_mapping['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ')
-        if t < (datetime.today() - timedelta(hours = 3)):
+        if t < (datetime.today() - timedelta(hours = 1)):
             doc = json.dumps(pass_mapping)
             q = '{{"doc": {}}}'.format(doc)
-            es.update(index='passenger', doc_type='rolling', id=last_uid, body=q)
+            es.delete(index='passenger', doc_type='rolling', id=last_uid)
     return(pass_mapping)
 
 
     
 # Read the boundaries
 bound = loadBoundaries(boundaries_file)
-attract = loadTattraction(tourist_attractions, city)
-
 # Generate users
-print("Generating {} passengers...".format(totalPassenger))
-for n in range(totalPassenger):
+
+def main():
+    print("Generating {} passengers...".format(totalPassenger))
+    for n in range(totalPassenger):
+        city = random.choice(['CHI','NYC'])
         user = generatePassenger(city)
         u_json = json.dumps(user).encode('utf-8')
         key = json.dumps(user['id']).encode('utf-8')
         print(u_json)
         producer.send(b'psg', key, u_json)
         #time.sleep(2)
-        
 
+if __name__ == '__main__':
+    main()

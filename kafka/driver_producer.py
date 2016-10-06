@@ -1,6 +1,6 @@
 # This is the script to populate driver's Data
 # {driver_id, time, curr_lat, curr_long, dest, load}
-total_drivers = 5000
+total_drivers = 2000
 
 
 import time
@@ -19,7 +19,6 @@ from elasticsearch import Elasticsearch
         Set the geographical boundaries and other variables
 '''
 boundaries_file = "boundaries.csv"
-city = random.choice(['CHI','NYC'])
 
 getcontext().prec=6
 step_to_dest = random.randrange(1,2)
@@ -28,11 +27,9 @@ cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', \
                     'ip-172-31-0-105', 'ip-172-31-0-106']
 
 brokers = ','.join(['{}:9092'.format(i) for i in cluster])
-#brokers = 'localhost:9092'
 kafka = KafkaClient(brokers)
 producer = KeyedProducer(kafka)
-es = Elasticsearch(cluster, \
-                   port=9200)
+es = Elasticsearch(cluster, port=9200)
 
 
 
@@ -94,18 +91,24 @@ def generateDriver(city):
             pass
     if q['found'] and (q['_source']['status'] in ['arrived']):
         t = datetime.strptime("{}".format(driver_mapping['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ')
-        if t < (datetime.today() - timedelta(hours = 3)):
+        if t < (datetime.today() - timedelta(hours = 1)):
             doc = json.dumps(driver_mapping)
             q = '{{"doc": {}}}'.format(doc)
             es.delete(index='driver', doc_type='rolling', id=last_uid)
     return(driver_mapping)
 
 bound = loadBoundaries(boundaries_file)
-print("Generating {} drivers".format(total_drivers))
-for n in range(total_drivers):
-    driver = generateDriver(city)
-    u_json = json.dumps(driver).encode('utf-8')
-    key = json.dumps(driver['id']).encode('utf-8')
-    print('{}'.format(driver))
-    producer.send(b'drv', key, u_json)
-kafka.close()
+
+def main():
+    print("Generating {} drivers".format(total_drivers))
+    for n in range(total_drivers):
+        city = random.choice(['CHI','NYC'])
+        driver = generateDriver(city)
+        u_json = json.dumps(driver).encode('utf-8')
+        key = json.dumps(driver['id']).encode('utf-8')
+        print('{}'.format(driver))
+        producer.send(b'drv', key, u_json)
+    kafka.close()
+
+if __name__ == "__main__":
+    main()

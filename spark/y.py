@@ -44,7 +44,7 @@ def sanityCheck(status, ctime, city, location, driver, name=None, p1=None, p2=No
         doc = json.dumps(doc)
         q = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)
         res = es.update(index='driver', doc_type='rolling', id=driver, \
-                                body=q)
+                                body=q, ignore=[400, 404])
         return True
     else:
         return False
@@ -57,7 +57,6 @@ def elapsedTime(t1, ctime):
     
 
 def assign(x):
-    city = x['city']
     ctime = x['ctime']
     location = x['location']
     driver = x['id']
@@ -65,12 +64,12 @@ def assign(x):
     p1 = x['p1']
     p2 = x['p2']
     status = x['status']
+    city = x['city']
     ctime = convertTime(ctime)
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
     es = Elasticsearch(cluster, port=9200)
     
     def nearby(ctime, location, driver, name, p1=None, p2=None):    
-        if location == None: sys.exit("Driver {}  Name {} P1 {} P2 {}".format(driver, name, p1, p2))
         geo_query = { "from" : 0, "size" : 1,
                       "query": {
                    "filtered": {
@@ -84,8 +83,8 @@ def assign(x):
                 }}}
     
     
-        res = es.search(index='passenger', doc_type='rolling', body=geo_query, ignore=[404, 400])
-    
+        res = es.search(index='passenger', doc_type='rolling', body=geo_query, ignore=[400])
+        
         if res['hits']['hits']: 
             passenger = res['hits']['hits'][0]["_source"]
             doc = json.dumps({"status": "pickup", "driver": driver})
