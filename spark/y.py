@@ -282,8 +282,6 @@ def onride(x):
 
 
 def updatePass(x):
-
-    
     passenger = {
         'city' : x['city'],
         'ctime' : x['ctime'],
@@ -326,7 +324,6 @@ def main():
     
     driver = KafkaUtils.createDirectStream(ssc, ['drv'], {'metadata.broker.list':brokers})
     passenger = KafkaUtils.createDirectStream(ssc, ['psg'], {'metadata.broker.list': brokers}) 
-
     
     D = driver.map(lambda x: json.loads(x[1]))
     idle = D.filter(lambda x: x['status']=='idle').map(assign)
@@ -334,19 +331,16 @@ def main():
     secondPsg = D.filter(lambda x: x['status']=='ontrip').filter(lambda x: x['p2'] is None).map(assign)
     riding = D.filter(lambda x: x['status']=='ontrip').map(onride)
     P = passenger.map(lambda x: json.loads(x[1])).map(updatePass)
-    
+
+    P.pprint()
     D.pprint()
     idle.pprint()
     pick.pprint()
     secondPsg.pprint()
     riding.pprint()
-    P.pprint()
     
     ssc.start()
     ssc.awaitTermination()
-    #ssc.stop()
-
-
 
 if __name__ == '__main__':
     main()
