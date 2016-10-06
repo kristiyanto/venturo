@@ -28,7 +28,7 @@ The matching is heuristic, and driver-centric:
 The dashboard put the drivers and passengers on the map in realtime fashion within 1 hour window. Since the data is simulated, some passengers and drivers may appear on unlikely places (e.g. river/lake).
 
 
-![alt tag](media/screenshot.png)
+![alt tag](media/screenshot.png =500x313)
 
 Green dots represent passengers, Blue represents drivers. Green inside blue represents passenger(s) on a trip.
 The stats:
