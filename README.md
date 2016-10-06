@@ -27,6 +27,9 @@ The matching is heuristic, and driver-centric:
 ## Dashboard and Queries
 The dashboard put the drivers and passengers on the map in realtime fashion within 1 hour window. Since the data is simulated, some passengers and drivers may appear on unlikely places (e.g. river/lake).
 
+
+![alt tag](media/screenshot.png)
+
 Green dots represent passengers, Blue represents drivers. Green inside blue represents passenger(s) on a trip.
 The stats:
 - Total cabs: total active drivers (including idle, on trip, and dispatched drivers)
@@ -35,6 +38,9 @@ The stats:
 - On going trips: total cabs with passengers on going to destination
 - Passenger waiting: total passengers not assigned to any drivers
 - Average waiting time: in seconds, average time between waiting passengers to the time passengers hop on into the car.
+
+Other queries that performed internally:
+- Check nearby passangers
 
 ## Architecture
 __Ingestion layer__
@@ -46,7 +52,7 @@ __Stream processing__
 Stream processing is performed in Spark Streaming with window 3 seconds, consuming data streams from both drivers and passangers. Every incoming messages are subject of sanity check: e.g. driver's reported status is matched with previous status, etc. to anticipate latency.
 
 __Sink__
-Elasticsearch is used as the buffer/transactional interface for the resulted messages
+Elasticsearch is used as the buffer/transactional interface for the resulted messages. Elasticsearch is also called by Spark to enable assigments. Elasticsearch geo location and boolean queries are leveraged. 
 
 __Output__
 Output is served as API by using Flask. Bootstrap2, jquery and leaflet is used to prettify the output.
