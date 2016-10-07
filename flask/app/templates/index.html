@@ -298,32 +298,12 @@
         return ( i < 10 ) ? "0" + i : i;
      }
 
-
-    for(lyr in mymap._layers) {
-        if(mymap._layers[lyr]._path != undefined) {
-            try {
-                mymap.removeLayer(mymap._layers[lyr]);
-            }
-            catch(e) {
-                console.log("problem with " + e + mymap._layers[lyr]);
-            }}
-    }
-        
-
      var today = new Date(),
         h = fixTimeFormat(today.getHours()),
         m = fixTimeFormat(today.getMinutes()),
         s = fixTimeFormat(today.getSeconds());
      document.getElementById("clock").innerHTML = "&nbsp;" + h + ":" + m + ":" + s;
-
-
-    var onWait;
-    var arrived;
-    var match;
-    var ontrip;
-
-        
-        
+   
     $.getJSON( "stats", function( data ) {
       DATA = data;
       var items = [];
@@ -345,43 +325,91 @@
       arrived = data.arrived;
       match = data.match;
       ontrip = data.onRide;
-        
+      
       var circle = L.circle(data.mLoc, 250, {
       color: 'pink',
       fillOpacity: 0.5
+      }).addTo(mymap);
+      
+      var circle = L.circle(data.mLoc, 30, {
+      color: 'black',
+      fillOpacity: 0.2
       }).addTo(mymap);
         
       var circle = L.circle(data.arrMsgLoc, 250, {
       color: 'yellow',
       fillOpacity: 0.5
       }).addTo(mymap);
+      
+      var circle = L.circle(data.arrMsgLoc, 30, {
+      color: 'black',
+      fillOpacity: 0.2
+      }).addTo(mymap);
+
         
 
-      for (var drv = 0; drv < data.dLoc.length; drv++) {
-        var circle = L.circle(data.dLoc[drv], 30, {
+    });
+
+    }
+
+    function clearMap()
+    {
+       for(lyr in mymap._layers) {
+        if(mymap._layers[lyr]._path != undefined) {
+            try {
+                mymap.removeLayer(mymap._layers[lyr]);
+            }
+            catch(e) {
+                console.log("problem with " + e + mymap._layers[lyr]);
+            }}
+    }
+    
+    }
+        
+    function drawDrivers()
+    {
+    
+      $.getJSON( "driver", function( DLOC ) {
+    
+
+      for (var drv = 0; drv < DLOC.drv.length; drv++) {
+        var circle = L.circle(DLOC.drv[drv], 30, {
         color: 'blue',
         //fillColor: 'blue',
         fillOpacity: 0.2
         }).addTo(mymap);
         }
         
+    });
+
+    }
         
-      for (var pass = 0; pass < data.pLoc.length; pass++) {
-        var circle = L.circle(data.pLoc[pass], 8, {
+        
+    function drawPassengers()
+    {
+    
+      $.getJSON( "passenger", function( PLOC ) {
+    
+  
+      for (var pass = 0; pass < PLOC.pass.length; pass++) {
+        var circle = L.circle(PLOC.pass[pass], 8, {
         color: 'green',
         fillColor: 'green',
         fillOpacity: 0.5
         }).addTo(mymap);
         }
         
-
     });
 
-    }         
+    }
+        
 
     $(function () {
+    setInterval(currentTime, 500);
+    setInterval(clearMap, 4999);
+    setInterval(drawPassengers, 5000);
+    setInterval(drawDrivers, 5000);
 
-    setInterval(currentTime, 2000);
     });
     
     function centerIt(){
@@ -404,6 +432,16 @@
 
     </script>
 
+    <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-503990-23', 'auto');
+  ga('send', 'pageview');
+
+    </script>
 
 </body>
 

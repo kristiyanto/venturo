@@ -21,7 +21,7 @@ from elasticsearch import Elasticsearch
 boundaries_file = "boundaries.csv"
 
 getcontext().prec=6
-step_to_dest = random.randrange(1,2)
+step_to_dest = random.randrange(1,3)
 
 cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', \
                     'ip-172-31-0-105', 'ip-172-31-0-106']

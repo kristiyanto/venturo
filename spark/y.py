@@ -148,12 +148,13 @@ def pickup(x):
     status = x['status']
     ctime = convertTime(ctime)
     
+    cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
+    es = Elasticsearch(cluster, port=9200)
     def hopOn(ctime, location, driver, name, p1=None, p2=None):
-        cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
-        es = Elasticsearch(cluster, port=9200)
+ 
         passenger = p2 if p2 else p1
-        
-        ## For the sake of demo only, so that the dots are not overlaps on the map
+    
+        ## For demo only, so that the dots are not overlaps on the map
         newLoc = [round(location[0] - 0.0001,4), round(location[1] - 0.0001,4)]
         newLoc_ = [round(location[0] + 0.0001,4), round(location[1] + 0.0001,4)]
 
@@ -166,8 +167,6 @@ def pickup(x):
                    'destination': p['destination'], 'destinationid': \
                    p['destinationid']}
             ptime = elapsedTime(p['ctime'], ctime)
-            
-            
             if p2:
                 doc_ = json.dumps({"status": "ontrip", "ptime": ptime, \
                                    "location": newLoc_, "match": p1})
@@ -188,6 +187,7 @@ def pickup(x):
             
             q = '{{"doc": {}}}'.format(doc)
             res = es.update(index='passenger', doc_type='rolling', id=p1, body=q)
+            
             
             dDoc = json.dumps(dDoc)
             dQ = '{{"doc": {}}}'.format(dDoc)
@@ -212,10 +212,17 @@ def pickup(x):
             q = '{{"doc": {}}}'.format(doc)
             res = es.update(index='passenger', doc_type='rolling', id=p1, \
                             body=q)
+        q = json.dumps({"script" : " if(! ctx._source.path.contains(path)){ ctx._source.path += path }", \
+             "params" : { "path" : location }})
+        #addPath = es.update(index='passenger', doc_type='rolling', id=p1, body=q)
+        #if p2: addPath = es.update(index='passenger', doc_type='rolling', id=p2, body=q)
+   
             
         return doc
-    res = hopOn(ctime, location, driver, name, p1, p2) if sanityCheck(status, ctime, city, location, driver) else '{invalid}'
-
+    res = hopOn(ctime, location, driver, name, p1, p2) if \
+            sanityCheck(status, ctime, city, location, driver) else '{invalid}'
+        
+   
     return res
 
 def onride(x):
@@ -279,8 +286,6 @@ def onride(x):
     return res
         
 
-
-
 def updatePass(x):
     passenger = {
         'city' : x['city'],
@@ -301,21 +306,22 @@ def updatePass(x):
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
     es = Elasticsearch(cluster, port=9200)
     
-    try:
-        tmp = datetime.strptime("{}".format(passenger['ctime']), '%Y-%m-%d %H:%M:%S.%f')
-        passenger['ctime'] = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-    except:
-        pass
+    #try:
+    tmp = datetime.strptime("{}".format(passenger['ctime']), '%Y-%m-%d %H:%M:%S.%f')
+    passenger['ctime'] = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    #except:
+    #    pass
     
     res = es.get(index='passenger', doc_type='rolling', id=passenger['id'], ignore=[404, 400])
     if not res['found']:
-        doc = json.dumps(passenger)
-        res = es.create(index='passenger', doc_type='rolling', id=passenger['id'], body=doc, ignore=[400,404])
+        doc = '{{"doc": {}, "doc_as_upsert" : "true"}}'.format(passenger)
+        q = json.dumps(passenger)
+        res = es.create(index='passenger', doc_type='rolling', id=passenger['id'], body=q)
     else:
         doc = {'ctime': passenger['ctime'], 'location': passenger['location']}
         q = '{{"doc": {}}}'.format(json.dumps(doc))
-        res = es.update(index='passenger', doc_type='rolling', id=passenger['id'], body=doc, ignore=[400,404])
-    return doc
+        res = es.update(index='passenger', doc_type='rolling', id=passenger['id'], body=q)
+    return q
         
 
 def main():
@@ -325,12 +331,12 @@ def main():
     driver = KafkaUtils.createDirectStream(ssc, ['drv'], {'metadata.broker.list':brokers})
     passenger = KafkaUtils.createDirectStream(ssc, ['psg'], {'metadata.broker.list': brokers}) 
     
+    P = passenger.map(lambda x: json.loads(x[1])).map(updatePass)
     D = driver.map(lambda x: json.loads(x[1]))
     idle = D.filter(lambda x: x['status']=='idle').map(assign)
     pick = D.filter(lambda x: x['status']=='pickup').map(pickup)
     secondPsg = D.filter(lambda x: x['status']=='ontrip').filter(lambda x: x['p2'] is None).map(assign)
     riding = D.filter(lambda x: x['status']=='ontrip').map(onride)
-    P = passenger.map(lambda x: json.loads(x[1])).map(updatePass)
 
     P.pprint()
     D.pprint()

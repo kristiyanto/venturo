@@ -15,7 +15,6 @@ from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from datetime import datetime, timedelta
 from decimal import *
 
-#city = random.choice(['CHI','NYC'])
 
 ### Global 
 getcontext().prec=6
@@ -67,9 +66,8 @@ def retention(passanger):
 
 
 
-def generatePassenger(city):
-    global last_uid 
-    last_uid = random.randint(1, totalPassenger)
+def generatePassenger(city, ID):
+    last_uid = ID
     bnd = bound[city]
     attract = loadTattraction(tourist_attractions, city)
     curr_lat = round(random.uniform(float(bnd[0]), float(bnd[2])),4)
@@ -98,13 +96,8 @@ def generatePassenger(city):
     if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
         pass_mapping = q['_source']
         pass_mapping['ctime'] = str(datetime.now())
-    if q['found'] and (q['_source']['status'] in ['arrived']): 
-        pass_mapping = q['_source']
-        t = datetime.strptime("{}".format(pass_mapping['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ')
-        if t < (datetime.today() - timedelta(hours = 1)):
-            doc = json.dumps(pass_mapping)
-            q = '{{"doc": {}}}'.format(doc)
-            es.delete(index='passenger', doc_type='rolling', id=last_uid)
+    if q['found'] and (q['_source']['status'] in ['arrived', 'wait']): 
+        es.delete(index='passenger', doc_type='rolling', id=last_uid)
     return(pass_mapping)
 
 
@@ -115,9 +108,9 @@ bound = loadBoundaries(boundaries_file)
 
 def main():
     print("Generating {} passengers...".format(totalPassenger))
-    for n in range(totalPassenger):
+    for n in xrange(totalPassenger):
         city = random.choice(['CHI','NYC'])
-        user = generatePassenger(city)
+        user = generatePassenger(city, n)
         u_json = json.dumps(user).encode('utf-8')
         key = json.dumps(user['id']).encode('utf-8')
         print(u_json)

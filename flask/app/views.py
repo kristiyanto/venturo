@@ -54,8 +54,49 @@ def getstats():
 
     return json.dumps({'actDrivers': ad, 'match': match, 'msg': msg ,'mLoc': msgLoc, 'arrived': arr, \
                        'arrMsg': arrMsg, 'arrMsgLoc': arrMsgLoc ,'avgWait': avg_wait, 'idle': idle, \
-                       'dLoc': dLatLong, 'actPass': ap, \
-                       'pLoc': pLatLong, 'onWait': onWait, 'onRide': onRide})
+                        'actPass': ap, \
+                       'onWait': onWait, 'onRide': onRide})
+
+@app.route('/passenger')
+def P():
+    res = json.dumps({'pass': getPassengers()})
+    return (res)
+
+@app.route('/driver')
+def D():
+    return (json.dumps({'drv':getDrivers()}))
+
+
+def getDrivers():
+    drivers = activeDrivers()
+    dLatLong = []
+
+    if len(drivers['hits']['hits']) < 1:
+        ad = 0
+
+    else:
+        ad = drivers['hits']['total']
+        for i in drivers['hits']['hits']:
+            dLatLong.append(i['_source']['location'])
+    return dLatLong
+
+def getPassengers():
+    passenger = activePass()
+    pLatLong = []
+    
+    if len(passenger['hits']['hits']) < 1:
+        ap = 0
+
+    else:
+        ap = passenger['hits']['total']
+        for i in passenger['hits']['hits']:
+            pLatLong.append(i['_source']['location'])
+            
+    return pLatLong
+
+
+    
+
 
 def activeDrivers():
     q = {"size": size, "filter": {"range": { "ctime": { "gt": window }}}}
