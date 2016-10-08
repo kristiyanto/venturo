@@ -28,7 +28,7 @@ def convertTime(ctime):
     return ctime
 
 def isNearby(location, p):
-    return True if (vincenty(Point(location), Point(p['location'])).meters < 300) else False
+    return True if (vincenty(Point(location), Point(p)).meters < 300) else False
 
 def sanityCheck(es, status, ctime, city, location, driver, name=None, p1=None, p2=None):
     ctime = convertTime(ctime)
@@ -157,7 +157,8 @@ def pickup(x):
     p2 = x['p2']
     status = x['status']
     ctime = convertTime(ctime)
-    dest = x['destinationid']
+    destid = x['destinationid']
+    dest = x['destination']
     
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
     es = Elasticsearch(cluster, port=9200)
@@ -187,37 +188,41 @@ def pickup(x):
         
         pDoc = {'ctime': ctime, 'location': location}
         
-        if isNearby(location, p):
+        if isNearby(location, p['location']):
             dDoc['status'] = "ontrip"
-            dDoc['destination'] = p["destination"]
+            dDoc['destination'] = p['destination']
             dDoc['destinationid'] = p['destinationid']
-            dDoc['origin'] = location
+            dDoc['origin'] = p['location']
             pDoc['status'] = 'ontrip'
             pDoc['ptime'] = elapsedTime(p['ctime'], ctime)
 
-            if p2:
+            if p1:
                 _ = pDoc
                 _['id'] = p1
-                _['match'] = p2
+                _['match'] = p['id']
                 _['location'] = shiftLocation(location)[0]
                 updatePassenger(p1, _, es)
-                appendPath(p2, location, es)
+                appendPath(p1, location, es)
                     
                 _ = pDoc
-                _['id'] = p2
+                _['id'] = p['id']
                 _['match'] = p1
                 _['location'] = shiftLocation(location)[1]
-                updatePassenger(p2, _, es)
-                appendPath(p1, location, es)
+                updatePassenger(p['id'], _, es)
+                appendPath(p['id'], location, es)
+                
+                dDoc['p2'] = p['id']
                     
-            else:
+            elif not p1:
                 _ = pDoc
                 _['location'] = shiftLocation(location)[0]
-                updatePassenger(p1, _, es)
-                appendPath(p1, location, es)
+                updatePassenger(p['id'], _, es)
+                appendPath(p['id'], location, es)
+                dDoc['p1'] = p['id']
                 
-      
-
+            else:
+                return (0, {'cab is full'})
+                
         res = updateDriver(driver, dDoc, es)
         bulk = (1, '{{doc: {}}}'.format(json.dumps(dDoc)))
         return (bulk) 
@@ -307,6 +312,7 @@ def updatePass(x):
     else:
         doc = {'ctime': p['ctime']}
         updatePassenger(p['id'], doc, es)
+        q = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)
         return(0, q)
 
 
