@@ -66,6 +66,15 @@ def P():
 def D():
     return (json.dumps({'drv':getDrivers()}))
 
+@app.route('/path/<path:path>')
+def getPath(path):
+    res = es.get(index='passenger', doc_type='rolling', id=path, ignore=[400,404])
+    if res['found']: 
+        res = res['_source']['path']
+        #return path
+        return (json.dumps({'path': res}))
+    else:
+        return json.dumps({'path': []})
 
 def getDrivers():
     drivers = activeDrivers()
@@ -93,8 +102,6 @@ def getPassengers():
             pLatLong.append(i['_source']['location'])
             
     return pLatLong
-
-
     
 
 
@@ -175,7 +182,7 @@ def avgWait():
 
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
     if res['aggregations']['avg_wait']['avg_wait']['value']:
-        res = round(float(res['aggregations']['avg_wait']['avg_wait']['value']), 2)
+        res = round(float(res['aggregations']['avg_wait']['avg_wait']['value'])/60, 2)
     else:
         res = "N/A"
     return res

@@ -3,7 +3,7 @@
 # for the stream. Ideally, this would come from User.
 # Boundaries.csv contains information about the location boundaries for the generation.
 
-totalPassenger = 3000
+totalPassenger = 1000
 # Once generated, the request then sent to Kafka.
 
 import csv
@@ -13,6 +13,8 @@ import json
 
 from kafka import KafkaClient, KeyedProducer, SimpleConsumer
 from datetime import datetime, timedelta
+from elasticsearch import Elasticsearch
+
 from decimal import *
 
 
@@ -27,6 +29,9 @@ boundaries_file = "boundaries.csv"
 tourist_attractions = "destinations.csv"
 kafka = KafkaClient(brokers)
 producer = KeyedProducer(kafka)
+cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', \
+                    'ip-172-31-0-105', 'ip-172-31-0-106']
+es = Elasticsearch(cluster, port=9200)
 
 
 last_uid = 0
@@ -65,7 +70,10 @@ def retention(passanger):
     return res['hits']["total"]
 
 
-
+def convertTime(tm):
+    t = datetime.strptime("{}".format(tm),'%Y-%m-%dT%H:%M:%S.%fZ')
+    return t
+        
 def generatePassenger(city, ID):
     last_uid = ID
     bnd = bound[city]
@@ -90,14 +98,15 @@ def generatePassenger(city, ID):
             'altdest2id': att[2][0],
             'origin': [curr_lat, curr_long],
           }
-    return(pass_mapping)
-    
+   
     q = es.get(index='passenger', doc_type='rolling', id=last_uid, ignore=[404, 400])
     if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
         pass_mapping = q['_source']
         pass_mapping['ctime'] = str(datetime.now())
-    if q['found'] and (q['_source']['status'] in ['arrived', 'wait']): 
-        es.delete(index='passenger', doc_type='rolling', id=last_uid)
+    if q['found'] and (q['_source']['status'] in ['arrived', 'wait']):
+        if convertTime(q['_source']['ctime']) < (datetime.now() - timedelta(hours = 1)):
+            print ('ID: {} deleted.'.format(ID))
+            es.delete(index='passenger', doc_type='rolling', id=last_uid)
     return(pass_mapping)
 
 
@@ -110,10 +119,10 @@ def main():
     print("Generating {} passengers...".format(totalPassenger))
     for n in xrange(totalPassenger):
         city = random.choice(['CHI','NYC'])
-        user = generatePassenger(city, n)
+        user = generatePassenger(city, random.randint(1,totalPassenger))
         u_json = json.dumps(user).encode('utf-8')
         key = json.dumps(user['id']).encode('utf-8')
-        print(u_json)
+        #print(u_json)
         producer.send(b'psg', key, u_json)
         #time.sleep(2)
 

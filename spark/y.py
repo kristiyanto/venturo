@@ -54,6 +54,14 @@ def elapsedTime(t1, ctime):
     ctime = datetime.strptime("{}".format(ctime),'%Y-%m-%dT%H:%M:%S.%fZ') #id dis : str & unicode
     elapsed = int((ctime-t).seconds)
     return elapsed
+
+def appendPath(p, location, es):
+    res = es.get(index='passenger', doc_type='rolling', id=p, ignore=[400,404])
+    if res['found']: 
+        res = res['_source']['path']
+        res.append(location)
+        q = '{{"doc": {}}}'.format(json.dumps({'path':res}))
+        es.update(index='passenger', doc_type='rolling', id=p, body=q)
     
 
 def assign(x):
@@ -150,79 +158,75 @@ def pickup(x):
     
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
     es = Elasticsearch(cluster, port=9200)
-    def hopOn(ctime, location, driver, name, p1=None, p2=None):
- 
-        passenger = p2 if p2 else p1
     
-        ## For demo only, so that the dots are not overlaps on the map
-        newLoc = [round(location[0] - 0.0001,4), round(location[1] - 0.0001,4)]
-        newLoc_ = [round(location[0] + 0.0001,4), round(location[1] + 0.0001,4)]
+    def hopOn(ctime, location, driver, name, p1=None, p2=None):
+        
+        def updatePassenger(p, data):
+            
+            q = '{{doc: {}}}'.format(json.dumps(data))
+            res = es.update(index='passenger', doc_type='rolling', id=p, body=q)
+            return res
+        
+        def updateDriver(d, data):
+            
+            q = '{{doc: {}}}'.format(json.dumps(data))
+            res = es.update(index='driver', doc_type='rolling', id=d, body=q)
+            return res
 
+
+        def shiftLocation(location):
+            newLoc = [round(location[0] - 0.0001,4), round(location[1] - 0.0001,4)]
+            newLoc_ = [round(location[0] + 0.0001,4), round(location[1] + 0.0001,4)]
+            return (newLoc, newLoc_)
         
-        p = es.get(index='passenger', doc_type='rolling', id=passenger, \
-                   ignore=[404, 400])['_source']
+        def retrievePassenger(pID):
+            p = es.get(index='passenger', doc_type='rolling', id=pID, \
+                   ignore=[404, 400])
+            return p['_source'] if p['found'] else False
+
+        def isNearby(location, pID):
+            return True if (vincenty(Point(location), Point(p['location'])).meters < 300) else False
+                
+                
+        p = retrievePassenger(p2) if p2 else retrievePassenger(p1)
         
-        if (vincenty(Point(location), Point(p['location'])).meters < 300):
-            dDoc = {"status": "ontrip", "ctime": ctime, "location": location,\
+        dDoc = {"status": "ontrip", "ctime": ctime, "location": location,\
                    'destination': p['destination'], 'destinationid': \
                    p['destinationid']}
-            ptime = elapsedTime(p['ctime'], ctime)
-            if p2:
-                doc_ = json.dumps({"status": "ontrip", "ptime": ptime, \
-                                   "location": newLoc_, "match": p1})
-                q_ = '{{"doc": {}}}'.format(doc_)
-                res = es.update(index='passenger', doc_type='rolling', \
-                                id=p2, body=q_)
-                doc_ = json.dumps({"status": "ontrip", "ptime": ptime, \
-                                   "location": newLoc, "match": p2})
-                q_ = '{{"doc": {}}}'.format(doc_)
-                res = es.update(index='passenger', doc_type='rolling', \
-                                id=p1, body=q_)
-                
-            else:
-                dDoc['origin'] = location
-
-            doc = json.dumps({"status": "ontrip", "ctime": ctime, \
-                              "location": newLoc, 'ptime': ptime})
-            
-            q = '{{"doc": {}}}'.format(doc)
-            res = es.update(index='passenger', doc_type='rolling', id=p1, body=q)
-            
-            
-            dDoc = json.dumps(dDoc)
-            dQ = '{{"doc": {}}}'.format(dDoc)
-            res = es.update(index='driver', doc_type='rolling', id=driver, \
-                        body=dQ)
-            
-        else:
-            doc = {"ctime": ctime, "location": location}
-            doc = json.dumps(doc)
-            q = '{{"doc": {}}}'.format(doc)
-            res = es.update(index='driver', doc_type='rolling', id=driver, \
-                            body=q)
-            
-            doc = {"ctime": ctime, "location": newLoc}
-            doc = json.dumps(doc)
-            q = '{{"doc": {}}}'.format(doc)
-            res = es.update(index='passenger', doc_type='rolling', id=p1, \
-                            body=q)
-            
-            doc = {"ctime": ctime, "location": newLoc_}
-            doc = json.dumps(doc)
-            q = '{{"doc": {}}}'.format(doc)
-            res = es.update(index='passenger', doc_type='rolling', id=p1, \
-                            body=q)
-        q = json.dumps({"script" : " if(! ctx._source.path.contains(path)){ ctx._source.path += path }", \
-             "params" : { "path" : location }})
-        #addPath = es.update(index='passenger', doc_type='rolling', id=p1, body=q)
-        #if p2: addPath = es.update(index='passenger', doc_type='rolling', id=p2, body=q)
-   
-            
-        return doc
-    res = hopOn(ctime, location, driver, name, p1, p2) if \
-            sanityCheck(status, ctime, city, location, driver) else '{invalid}'
         
-   
+        pDoc = {'id': p['id'], 'ctime': ctime, 'location': location}
+        
+        if isNearby(location, p):
+            pDoc['status'] = "ontrip"
+            if p2:
+                _ = pDoc
+                _['match'] = p2
+                _['location'] = shiftLocation(location)[0]
+                _['ptime'] = elapsedTime(p['ctime'], ctime)
+                updatePassenger(p1, _)
+                    
+                _ = pDoc
+                _['match'] = p1
+                _['location'] = shiftLocation(location)[1]
+                updatePassenger(p2, _)
+                    
+            else:
+                _ = pDoc
+                _['location'] = shiftLocation(location)[0]
+                updatePassenger(p1, _)
+                
+            dDoc['origin'] = location
+                    
+        else:
+            updateDriver(driver, dDoc)
+        return dDoc
+
+    if sanityCheck(status, ctime, city, location, driver):
+        res = hopOn(ctime, location, driver, name, p1, p2) 
+
+    else: 
+        res = '{invalid}'
+
     return res
 
 def onride(x):
@@ -275,9 +279,13 @@ def onride(x):
 
         res = es.update(index='passenger', doc_type='rolling', id=p1, \
                         body=q)
+        appendPath(p1, location, es)
+            
+
         if p2:
             res = es.update(index='passenger', doc_type='rolling', id=p2, \
                             body=q_)
+            appendPath(p2, location, es)
                 
     if  sanityCheck(status, ctime, city, location, driver, name):
         res = arrived(ctime, location, dest, driver, name, p1, p2)

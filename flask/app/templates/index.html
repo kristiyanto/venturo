@@ -291,7 +291,16 @@
     
     var DATA;
         
-
+    
+    function drawPath()
+    {
+        $.getJSON("path/50", function(path){
+        polyline = new L.Polyline(path.path)
+        mymap.addLayer(polyline)
+        });
+    
+    }
+        
     function currentTime()
     {
      function fixTimeFormat(i) {
@@ -346,8 +355,6 @@
       fillOpacity: 0.2
       }).addTo(mymap);
 
-        
-
     });
 
     }
@@ -389,8 +396,6 @@
     {
     
       $.getJSON( "passenger", function( PLOC ) {
-    
-  
       for (var pass = 0; pass < PLOC.pass.length; pass++) {
         var circle = L.circle(PLOC.pass[pass], 8, {
         color: 'green',
@@ -402,13 +407,14 @@
     });
 
     }
-        
+
 
     $(function () {
     setInterval(currentTime, 500);
     setInterval(clearMap, 4999);
     setInterval(drawPassengers, 5000);
     setInterval(drawDrivers, 5000);
+    setInterval(drawPath, 5000);
 
     });
     
