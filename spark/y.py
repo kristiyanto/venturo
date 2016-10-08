@@ -87,7 +87,7 @@ def scanPassenger(location, es):
                  "query": {
             "filtered": {
                 "query" : {
-                    "term" : {"status": "wait"}},
+                 "term" : {"status": "wait"}},
                 "filter": {
                     "geo_distance": {
                         "distance": '5km',
@@ -127,7 +127,7 @@ def assign(x):
             if p1: 
                 dDoc['p2'] = p['id']
             else:
-                dDoc['p1'] = p1
+                dDoc['p1'] = p['id']
             dDoc['status'] = "pickup"
             dDoc['destination'] = p['location']
             dDoc['destinationid'] = p['id']
@@ -182,7 +182,8 @@ def pickup(x):
         
         #d = retrieveDriver(driver)
         
-        p = retrievePassenger(dest)
+        p = retrievePassenger(destid)
+        if not p: return (0, {'Confused Driver.'})
         
         dDoc = {"ctime": ctime, "location": location}
         
@@ -251,8 +252,9 @@ def onride(x):
  
     
     def arrived(ctime, location, dest, driver, name, p1=None, p2=None):
-        isArrived = True if (vincenty(Point(location), Point(dest)).meters < 300) else False
         
+        
+        isArrived = True if (vincenty(Point(location), Point(dest)).meters < 300) else False 
         #d = retrieveDriver(driver, es)
         
         if isArrived: 
@@ -260,13 +262,14 @@ def onride(x):
                "destination": None, "destinationid": None, "p1": None, \
                "p2": None}
             doc = {"status": "arrived", "ctime": ctime, "location": dest}
+            appendPath(p1, location, es)
+
         else:
             doc = {"ctime": ctime, "location": location}
             dDoc = doc
 
         updateDriver(driver, dDoc, es)
         updatePassenger(p1, doc, es)
-        appendPath(p1, location, es)
         if p2: 
             updatePassenger(p2, doc, es)
             appendPath(p2, location, es)

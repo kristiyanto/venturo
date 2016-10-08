@@ -239,7 +239,7 @@ def arrivedMsg():
          {'query': {'exists' : { 'field' : 'match' }}},
     "sort": [
     {
-      "ctime": {
+      "path": {
         "order": "desc"
       }}]
     }
