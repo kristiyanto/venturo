@@ -91,7 +91,7 @@ def generateDriver(city):
             pass
     if q['found'] and (q['_source']['status'] in ['arrived']):
         t = datetime.strptime("{}".format(driver_mapping['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ')
-        if t > (datetime.now() - timedelta(hours = 1)):
+        if t < (datetime.now() - timedelta(hours = 1)):
             doc = json.dumps(driver_mapping)
             q = '{{"doc": {}}}'.format(doc)
             es.delete(index='driver', doc_type='rolling', id=last_uid)
