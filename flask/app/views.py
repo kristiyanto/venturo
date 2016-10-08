@@ -4,7 +4,7 @@ from elasticsearch import Elasticsearch
 
 cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
 es = Elasticsearch(cluster, port=9200)
-size = 5000
+size = 200
 window = 'now-2h'
 
 @app.route('/')
@@ -29,8 +29,17 @@ def getstats():
     avg_wait = avgWait()
     msg = matchMsg()[0]
     msgLoc = matchMsg()[1]
-    arrMsg = arrivedMsg()[0]
-    arrMsgLoc = arrivedMsg()[1]
+    
+    amsg = arrivedMsg()
+    if len(amsg['hits']['hits']) > 0:
+        amsg = amsg['hits']['hits'][0]['_source']
+        amsg = ["Driver {} just arrived to {}".format(\
+            amsg['id'], amsg['destinationid']), amsg['destination']]
+    else:
+        amsg = ["Nothing happens", [0,0]]
+    
+    arrMsg = amsg[0]
+    arrMsgLoc = amsg[1]
 
     
     dLatLong = []
@@ -75,6 +84,15 @@ def getPath(path):
         return (json.dumps({'path': res}))
     else:
         return json.dumps({'path': []})
+@app.route('/lines')
+def lines():
+    res = arrivedMsg()
+    if len(res['hits']['hits']) > 0:
+        res = res['hits']['hits'][0]['_source']
+    else:
+        res = []
+    return json.dumps(res)
+
 
 def getDrivers():
     drivers = activeDrivers()
@@ -217,6 +235,8 @@ def arrivedMsg():
     'query' : {
             'term' : { 'status' : 'arrived' }
     },
+     "filter": 
+         {'query': {'exists' : { 'field' : 'match' }}},
     "sort": [
     {
       "ctime": {
@@ -224,13 +244,5 @@ def arrivedMsg():
       }}]
     }
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
-
-
-    if len(res['hits']['hits']) > 0:
-        res = res['hits']['hits'][0]['_source']
-        msg = ["Driver {} just arrived to {}".format(\
-            res['id'], res['destinationid']), res['destination']]
-    else:
-        msg = ["Nothing happens", [0,0]]
-    return msg
+    return res
    

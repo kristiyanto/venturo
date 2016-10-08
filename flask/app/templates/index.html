@@ -294,7 +294,7 @@
     
     function drawPath()
     {
-        $.getJSON("path/50", function(path){
+        $.getJSON("lines", function(path){
         polyline = new L.Polyline(path.path)
         mymap.addLayer(polyline)
         });
