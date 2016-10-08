@@ -89,7 +89,9 @@ def generateDriver(city):
             driver_mapping['p2'] = q['_source']['p2']
         except: 
             pass
-    if q['found'] and (q['_source']['status'] in ['arrived']):
+    #if q['found'] and (q['_source']['status'] in ['ontrip']):
+    if q['found']:
+
         t = datetime.strptime("{}".format(driver_mapping['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ')
         if t < (datetime.now() - timedelta(hours = 1)):
             doc = json.dumps(driver_mapping)

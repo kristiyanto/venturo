@@ -103,7 +103,9 @@ def generatePassenger(city, ID):
     if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
         pass_mapping = q['_source']
         pass_mapping['ctime'] = str(datetime.now())
-    if q['found'] and (q['_source']['status'] in ['arrived']):
+    #if q['found'] and (q['_source']['status'] in ['arrived']):
+    if q['found']:
+
         if convertTime(q['_source']['ctime']) < (datetime.now() - timedelta(hours = 1)):
             print ('ID: {} deleted.'.format(ID))
             es.delete(index='passenger', doc_type='rolling', id=last_uid)
