@@ -16,7 +16,7 @@ from geopy.distance import vincenty, Point
 
 
 sc = SparkContext(appName="venturo")
-ssc = StreamingContext(sc, 3)
+ssc = StreamingContext(sc, 2)
 sc.setLogLevel("WARN")    
 
 
@@ -89,7 +89,7 @@ def appendPath(p, location, es):
     res = es.get(index='passenger', doc_type='rolling', id=p, ignore=[400,404])
     if res['found']: 
         res = res['_source']['path']
-        if (vincenty(Point(res[:-1]), Point(location)).miles < 100): 
+        if (vincenty(Point(res[-1]), Point(location)).miles < 100): 
             res.append(location)
             q = '{{"doc": {}}}'.format(json.dumps({'path':res}))
             es.update(index='passenger', doc_type='rolling', id=p, body=q)
@@ -221,8 +221,6 @@ def pickup(x):
     def hopOn(ctime, location, driver, name, dest, p, p1=None, p2=None):
              
      
-        
-        
         # The passenger no longer in the map (e.g waited > 2 hours)
         
         dDoc = {"ctime": ctime, "location": location}
@@ -246,13 +244,13 @@ def pickup(x):
                 _['match'] = p2
                 _['location'] = shiftLocation(location)[0]
                 updatePassenger(p1, _, es)
-                appendPath(p1, shiftLocation(location)[0], es)
+                appendPath(p1, location, es)
                     
                 _ = pDoc
                 _['match'] = p1
                 _['location'] = shiftLocation(location)[1]
                 updatePassenger(p2, _, es)
-                appendPath(p2, shiftLocation(location)[1], es)
+                appendPath(p2, location[1], es)
 
                     
             if p1:
