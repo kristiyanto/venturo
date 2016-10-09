@@ -11,7 +11,6 @@ window = 'now-2h'
 @app.route('/index')
 @app.route('/index.html')
 def index():
-    # return "Hello, World!"
     return render_template('index.html')
 @app.route('/map')
 def map():
@@ -137,7 +136,7 @@ def activePass():
     return res
 
 def idleDrivers():
-    q = {
+    q = {'size':0,
         'query': { 'term': {'status': 'idle'} },
         'filter': {'range': { 'ctime': { 'gt': window }} 
             }
@@ -147,7 +146,7 @@ def idleDrivers():
 
 
 def waitPass():
-    q = {
+    q = {'size':0,
         'query': { 'term': {'status': 'wait'} },
         'filter': {'range': { 'ctime': { 'gt': window }} 
             }
@@ -156,8 +155,8 @@ def waitPass():
     return res['hits']["total"]
 
 def ridingPass():
-    q = {
-    'query': { 'term': {'status': 'ontrip'} },
+    q = {'size':0,
+    'query': { 'terms': {'status': ['ontrip']} },
     'filter': {'range': { 'ctime': { 'gt': window }} 
         }
     }
@@ -165,7 +164,7 @@ def ridingPass():
     return res['hits']["total"]
 
 def arrived():
-    q = {
+    q = {'size':0,
     'query': { 'term': {'status': 'arrived'} },
     'filter': {'range': { 'ctime': { 'gt': window }} 
         }
@@ -204,6 +203,8 @@ def avgWait():
     else:
         res = "N/A"
     return res
+
+
 def matchMsg():
     q = { 'size': 1,
     'query' : {
@@ -235,13 +236,8 @@ def arrivedMsg():
     'query' : {
             'term' : { 'status' : 'arrived' }
     },
-     "filter": 
-         {'query': {'exists' : { 'field' : 'match' }}},
-    "sort": [
-    {
-      "path": {
-        "order": "desc"
-      }}]
+     "sort": 
+         {'ctime': {'order' : "desc"}},
     }
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
     return res

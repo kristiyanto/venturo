@@ -107,8 +107,8 @@ def generatePassenger(city, ID):
     if not q['found']: return pass_mapping
     
     if q['_source']['status'] in ['ontrip', 'pickup']: 
-        pass_mapping = q['_source']
-        pass_mapping['ctime'] = str(datetime.now())
+        #pass_mapping = q['_source']
+        #pass_mapping['ctime'] = str(datetime.now())
         return False
     if q['_source']['status'] in ['arrived']:
         q = es.update(index='passenger', doc_type='rolling', id=last_uid, ignore=[404, 400], body={'doc': pass_mapping, "doc_as_upsert" : "true"})

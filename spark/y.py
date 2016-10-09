@@ -175,9 +175,9 @@ def assign(x):
             dDoc['destination'] = p['location']
             dDoc['destinationid'] = p['id']
 
-        updateDriver(driver, dDoc, es)
+        #updateDriver(driver, dDoc, es)
         
-        bulk = (1, '{{doc: {}}}'.format(json.dumps(dDoc)))
+        bulk = (1, driver, '{{doc: {}}}'.format(json.dumps(dDoc)))
         return (bulk)
     
     if sanityCheck(es, status, ctime, city, location, driver, name, p1=None, p2=None) \
@@ -264,8 +264,8 @@ def pickup(x):
             else:
                 return (0, {'Confused Driver.'})
                 
-        res = updateDriver(driver, dDoc, es)
-        bulk = (1, '{{doc: {}}}'.format(json.dumps(dDoc)))
+        #updateDriver(driver, dDoc, es)
+        bulk = (1, driver, '{{doc: {}}}'.format(json.dumps(dDoc)))
         return (bulk) 
 
     if sanityCheck(es, status, ctime, city, location, driver):
@@ -296,12 +296,13 @@ def onride(x):
     def arrived(ctime, location, dest, driver, name, p1=None, p2=None):
 
         isArrived = isNearby(location, dest)
+        d = retrieveDriver(driver, es)
+        p1 = d['p1']
+        p2 = d['p2']
         
         if isArrived: 
-            dDoc = {"status": "arrived", "ctime": ctime, "location": dest,\
-               "destination": None, "destinationid": None, "p1": None, \
-               "p2": None}
-            doc = {"status": "arrived", "ctime": ctime, "location": dest}
+            dDoc = {"status": "arrived", "ctime": ctime, "location": location}
+            doc = {"status": "arrived", "ctime": ctime, "location": shiftLocation(location)[1]}
 
         else:
             doc = {"ctime": ctime, "location": location}
@@ -314,9 +315,9 @@ def onride(x):
             updatePassenger(p2, doc, es)
             appendPath(p2, location, es)
         
-        updateDriver(driver, dDoc, es)
+        #updateDriver(driver, dDoc, es)
 
-        return (1, '{{doc: {}}}'.format(json.dumps(dDoc)))
+        return (1, driver, '{{doc: {}}}'.format(json.dumps(dDoc)))
     
     if  sanityCheck(es, status, ctime, city, location, driver, name):
         res = arrived(ctime, location, dest, driver, name, p1, p2)
@@ -354,9 +355,19 @@ def updatePass(x):
         q = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)
         res = es.update(index='passenger', doc_type='rolling', id=p['id'], \
                         body=q, ignore=[400])
-        return (1, q)
+        return (1, p['id'], q)
 
     else: return(0, "{Welcome back, passenger.}")
+
+def bulkStore(rdd):
+    cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
+    es = Elasticsearch(cluster, port=9200)
+    
+    for x in rdd:
+        q = '{{"doc": {}}}'.format(json.dumps(x[2]))
+        res = es.update(index='driver', doc_type='rolling', id=x[1], body=x[2])
+    
+    
 
 
 def main():
@@ -366,19 +377,30 @@ def main():
     driver = KafkaUtils.createDirectStream(ssc, ['drv'], {'metadata.broker.list':brokers})
     passenger = KafkaUtils.createDirectStream(ssc, ['psg'], {'metadata.broker.list': brokers}) 
     
-    P = passenger.map(lambda x: json.loads(x[1])).map(updatePass)
     D = driver.map(lambda x: json.loads(x[1]))
-    idle = D.filter(lambda x: x['status']=='idle').map(assign)
-    pick = D.filter(lambda x: x['status']=='pickup').map(pickup)
-    secondPsg = D.filter(lambda x: x['status']=='ontrip').filter(lambda x: x['p2'] is None).map(assign)
-    riding = D.filter(lambda x: x['status']=='ontrip').map(onride)
+    P = passenger.map(lambda x: json.loads(x[1])).map(updatePass)\
+        .filter(lambda x: x[0]==1).count()
+        
+    idle = D.filter(lambda x: x['status']=='idle').map(assign)\
+        .filter(lambda x: x[0]==1).foreachRDD(lambda rdd: rdd.foreachPartition(bulkStore))
+        
+    pick = D.filter(lambda x: x['status']=='pickup').map(pickup)\
+        .filter(lambda x: x[0]==1).foreachRDD(lambda rdd: rdd.foreachPartition(bulkStore))
+        
+    secondPsg = D.filter(lambda x: x['status']=='ontrip')\
+        .filter(lambda x: x['p2'] is None).map(assign).filter(lambda x: x[0]==1)\
+        .foreachRDD(lambda rdd: rdd.foreachPartition(bulkStore))
+        
+        
+    riding = D.filter(lambda x: x['status']=='ontrip').map(onride)\
+        .filter(lambda x: x[0]==1).foreachRDD(lambda rdd: rdd.foreachPartition(bulkStore))
 
     P.pprint()
     #D.pprint()
-    idle.pprint()
-    pick.pprint()
-    secondPsg.pprint()
-    riding.pprint()
+    #idle.pprint()
+    #pick.pprint()
+    #secondPsg.pprint()
+    #riding.pprint()
     
     ssc.start()
     ssc.awaitTermination()
