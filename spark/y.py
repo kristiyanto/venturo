@@ -105,7 +105,7 @@ def appendPath(p, location, es):
 '''
 def updatePassenger(p, data, es):            
     q = '{{"doc": {}}}'.format(json.dumps(data))
-    res = es.update(index='passenger', doc_type='rolling', id=p, body=q)
+    res = es.update(index='passenger', doc_type='rolling', id=p, body=q, ignore=[409])
     return res
         
 def updateDriver(d, data, es):
@@ -127,8 +127,29 @@ def shiftLocation(location):
             newLoc_ = [round(location[0] + 0.0001,4), round(location[1] + 0.0001,4)]
             return (newLoc, newLoc_)
     
-def scanPassenger(location, es):
-    geo_query = { "from" : 0, "size" : 1,
+def scanPassenger(location, p1, es):
+    if p1: 
+        p = retrievePassenger(p1, es)
+        if p: 
+            destinations = [p['destinationid'], p['altdest1id'], p['altdest2id']]
+            geo_query = {"size": 1, 
+                 "query" : {
+                  "bool" : {
+                  "must" : { "term" : { "status" : "wait" }},
+                 "filter": {
+                "geo_distance": {
+                    "distance": '5km',
+               "distance_type": "plane", 
+                    "location": location }},
+
+                "should" : [{"terms" : { "destinationid" : destinations }},
+                            {"terms" : { "altdest1id" : destinations }},
+                            {"terms" : { "altdest2id" : destinations},}],
+              "minimum_should_match" : 1,
+                             "boost" : 1.0
+          }}}
+    else:
+        geo_query = { "from" : 0, "size" : 1,
                  "query": {
               "filtered": {
                 "query" : {
@@ -139,6 +160,7 @@ def scanPassenger(location, es):
                         "distance_type": "plane", 
                         "location": location }}
             }}}
+
     res = es.search(index='passenger', doc_type='rolling', body=geo_query, ignore=[400])
     return res['hits']['hits'][0]["_source"] if res['hits']['hits'] else False
 
@@ -182,7 +204,7 @@ def assign(x):
     
     if sanityCheck(es, status, ctime, city, location, driver, name, p1=None, p2=None) \
         and not (p1 and p2):
-        p = scanPassenger(location, es)
+        p = scanPassenger(location, p1, es)
         if p: 
             res = dispatch(ctime, location, driver, name, p, p1, p2)
         else:

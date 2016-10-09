@@ -86,8 +86,8 @@ def generatePassenger(city, ID):
     att = random.sample(attract.items(),3)
     pass_mapping = {
             'city': city,
-            'name': "passenger_{}".format(last_uid),
-            'id': last_uid,
+            'name': "passenger_{}".format(ID),
+            'id': ID,
             'status': 'wait',
             'match': None,                
             'location': [curr_lat, curr_long],
@@ -103,17 +103,21 @@ def generatePassenger(city, ID):
             'path': [curr_lat, curr_long]
           }
    
-    q = es.get(index='passenger', doc_type='rolling', id=last_uid, ignore=[404, 400])
+    q = es.get(index='passenger', doc_type='rolling', id=ID, ignore=[404, 400])
     if not q['found']: return pass_mapping
     
     if q['_source']['status'] in ['ontrip', 'pickup']: 
-        #pass_mapping = q['_source']
-        #pass_mapping['ctime'] = str(datetime.now())
         return False
     if q['_source']['status'] in ['arrived']:
-        q = es.update(index='passenger', doc_type='rolling', id=last_uid, ignore=[404, 400], body={'doc': pass_mapping, "doc_as_upsert" : "true"})
-    return(pass_mapping)
-
+        pass_mapping['ctime']  = convertTime(pass_mapping['ctime'])
+        doc = '{{"doc": {}}}'.format(json.dumps(pass_mapping))
+        q = es.update(index='passenger', doc_type='rolling', id=ID, body=doc)
+        print ("Reset: {}".format(ID))
+        return pass_mapping
+    elif q['_source']['status'] == 'wait':
+        return False
+    else:
+        return pass_mapping
 
     
 # Read the boundaries
@@ -128,7 +132,7 @@ def main():
         if user:
             u_json = json.dumps(user).encode('utf-8')
             key = json.dumps(user['id']).encode('utf-8')
-            print(u_json)
+            #print(u_json)
             producer.send(b'psg', key, u_json)
     time.sleep(5)
 

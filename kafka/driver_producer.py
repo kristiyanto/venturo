@@ -53,10 +53,10 @@ def randomLoc(id, city):
     return [round(random.uniform(float(bnd[0]), float(bnd[2])),4),\
                 round(random.uniform(float(bnd[1]), float(bnd[3])),4)]
 
-def simulateTrip(driverID):
-    q = es.get(index='driver', doc_type='rolling', id=driverID)
-    d = q['_source']['destination']
-    c = q['_source']['location']
+def simulateTrip(c, d):
+    #q = es.get(index='driver', doc_type='rolling', id=driverID)
+    #d = q['_source']['destination']
+    #c = q['_source']['location']
     la = Decimal(c[0]) + (((Decimal(d[0]) - Decimal(c[0]))/step_to_dest))
     lo = Decimal(c[1]) + (((Decimal(d[1]) - Decimal(c[1]))/step_to_dest))
     return [float(str(la)), float(str(lo))]
@@ -85,10 +85,12 @@ def generateDriver(city):
     q = es.get(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400])
     if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
         driver_mapping = q['_source']
-        driver_mapping['location'] = simulateTrip(driver_mapping['id'])
+        driver_mapping['location'] = simulateTrip(driver_mapping['location'], driver_mapping['destination'])
     if q['found'] and (q['_source']['status'] in ['arrived']): 
+        driver_mapping['ctime'] = convertTime(driver_mapping['ctime'])
+        doc = json.dumps(driver_mapping)
         q = es.update(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400],
-                     body={'doc': driver_mapping, "doc_as_upsert" : "true"})
+                     body={'doc': doc, "doc_as_upsert" : "true"})
 
     return(driver_mapping)
 
