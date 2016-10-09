@@ -51,7 +51,7 @@ def sanityCheck(es, status, ctime, city, location, driver, name=None, p1=None, p
     if status == "idle":
         doc = {'status': 'idle', 'ctime': ctime, 'location': location, \
                    'name': name, 'city': city, 'destination': None, 'destinationid': None,\
-                  'p1': None, 'p2': None}
+                  'p1': None, 'p2': None, 'id': driver}
         
         doc = json.dumps(doc)
         q = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)
@@ -104,12 +104,12 @@ def appendPath(p, location, es):
     Output: elastic's transaction output
 '''
 def updatePassenger(p, data, es):            
-    q = '{{doc: {}}}'.format(json.dumps(data))
+    q = {'doc': data}
     res = es.update(index='passenger', doc_type='rolling', id=p, body=q)
     return res
         
 def updateDriver(d, data, es):
-    q = '{{doc: {}}}'.format(json.dumps(data))
+    q = {'doc': data}
     res = es.update(index='driver', doc_type='rolling', id=d, body=q)
     return res
 
@@ -135,7 +135,7 @@ def scanPassenger(location, es):
                  "term" : {"status": "wait"}},
                 "filter": {
                     "geo_distance": {
-                        "distance": '5km',
+                        "distance": '3km',
                         "distance_type": "plane", 
                         "location": location }}
             }}}
@@ -159,11 +159,8 @@ def assign(x):
 
 
       
-    def dispatch(ctime, location, driver, name, p1=None, p2=None):
-        #d = retrieveDriver(driver, es)
-        
-        p = scanPassenger(location, es)
-        
+    def dispatch(ctime, location, driver, name, p, p1=None, p2=None):
+        #d = retrieveDriver(driver, es)        
         dDoc = {"ctime": ctime, "location": location}
         if p:
             doc = {"status": "pickup", "driver": driver, "ctime": ctime}
@@ -173,10 +170,10 @@ def assign(x):
                 dDoc['p2'] = p['id']
             else:
                 dDoc['p1'] = p['id']
+                
             dDoc['status'] = "pickup"
             dDoc['destination'] = p['location']
             dDoc['destinationid'] = p['id']
-            
 
         updateDriver(driver, dDoc, es)
         
@@ -185,7 +182,11 @@ def assign(x):
     
     if sanityCheck(es, status, ctime, city, location, driver, name, p1=None, p2=None) \
         and not (p1 and p2):
-        res = dispatch(ctime, location, driver, name, p1, p2)
+        p = scanPassenger(location, es)
+        if p: 
+            res = dispatch(ctime, location, driver, name, p, p1, p2)
+        else:
+            res = (0, "{No nearbyPassanger}")
     else:
         res = (0, "{'Taxi is full.'}")
     return res
@@ -196,7 +197,7 @@ def assign(x):
         If driver's location is within 300 meters from assigned passenger, 
         the passanger is added to the car. 
         
-        Input: JSON format from taxi
+        Input: JSON format from Drivers
         Output: Modified JSON format 
         
 '''
@@ -204,28 +205,25 @@ def assign(x):
 def pickup(x):
     
     city = x['city']
-    ctime = x['ctime']
+    ctime = convertTime(x['ctime'])
     location = x['location']
     driver = x['id']
     name = x['name']
     p1 = x['p1']
     p2 = x['p2']
     status = x['status']
-    ctime = convertTime(ctime)
     destid = x['destinationid']
     dest = x['destination']
     
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
     es = Elasticsearch(cluster, port=9200)
     
-    def hopOn(ctime, location, driver, name, dest, p1=None, p2=None):
+    def hopOn(ctime, location, driver, name, dest, p, p1=None, p2=None):
              
      
-        #d = retrieveDriver(driver, es)
-        p = retrievePassenger(destid, es)
+        
         
         # The passenger no longer in the map (e.g waited > 2 hours)
-        if not p: return (0, {'Confused Driver.'}) 
         
         dDoc = {"ctime": ctime, "location": location}
         pDoc = {'ctime': ctime, 'location': location}
@@ -239,6 +237,10 @@ def pickup(x):
             pDoc['status'] = 'ontrip'
             pDoc['ptime'] = elapsedTime(p['ctime'], ctime)
 
+            d = retrieveDriver(driver, es)
+            p1 = d['p1']
+            p2 = d['p2']
+            
             if p2:
                 _ = pDoc
                 _['match'] = p2
@@ -267,7 +269,9 @@ def pickup(x):
         return (bulk) 
 
     if sanityCheck(es, status, ctime, city, location, driver):
-        res = hopOn(ctime, location, driver, name, dest, p1, p2) 
+        p = retrievePassenger(destid, es)
+        if p: 
+            res = hopOn(ctime, location, driver, name, dest, p, p1, p2) 
 
     else: 
         res = (0, '{invalid}')
@@ -276,7 +280,7 @@ def pickup(x):
 
 def onride(x):
     city = x['city']
-    ctime = x['ctime']
+    ctime = convertTime(x['ctime'])
     location = x['location']
     driver = x['id']
     name = x['name']
@@ -290,14 +294,11 @@ def onride(x):
  
     
     def arrived(ctime, location, dest, driver, name, p1=None, p2=None):
-        
-        
-        #isArrived = True if (vincenty(Point(location), Point(dest)).meters < 300) else False 
-        #d = retrieveDriver(driver, es)
+
         isArrived = isNearby(location, dest)
         
         if isArrived: 
-            dDoc = {"status": "idle", "ctime": ctime, "location": dest,\
+            dDoc = {"status": "arrived", "ctime": ctime, "location": dest,\
                "destination": None, "destinationid": None, "p1": None, \
                "p2": None}
             doc = {"status": "arrived", "ctime": ctime, "location": dest}
@@ -344,16 +345,17 @@ def updatePass(x):
     
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
     es = Elasticsearch(cluster, port=9200)
-    if p['status'] == "wait":
-        #res = es.get(index='passenger', doc_type='rolling', id=p['id'], ignore=[404, 400])
-        #if not res['found']:
+    
+    isExist = retrievePassenger(p['id'], es)
+    
+    if not isExist:
         doc = json.dumps(p)
         q = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)
         res = es.update(index='passenger', doc_type='rolling', id=p['id'], \
                         body=q, ignore=[400, 404, 409])
         return (1, q)
 
-    else: return(0, {'Welcome back, passenger.'})
+    else: return(0, "{Welcome back, passenger.}")
 
 
 def main():

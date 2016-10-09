@@ -1,6 +1,6 @@
 # This is the script to populate driver's Data
 # {driver_id, time, curr_lat, curr_long, dest, load}
-total_drivers = 100
+total_drivers = 500
 
 
 import time
@@ -48,19 +48,19 @@ def loadBoundaries(boundaries_file):
     f.close()
     return boundaries
 
-def simulateTrip(id, city):
+def randomLoc(id, city):
     bnd = bound[city]
-    q = es.get(index='driver', doc_type='rolling', id=id, ignore=[404, 400])
-    if q['found']:
-        if (q['_source']['status'] in ['ontrip', 'pickup']): 
-            d = q['_source']['destination']
-            c = q['_source']['location']
-            la = Decimal(c[0]) + (((Decimal(d[0]) - Decimal(c[0]))/step_to_dest))
-            lo = Decimal(c[1]) + (((Decimal(d[1]) - Decimal(c[1]))/step_to_dest))
-            return [float(str(la)), float(str(lo))]
-
     return [round(random.uniform(float(bnd[0]), float(bnd[2])),4),\
                 round(random.uniform(float(bnd[1]), float(bnd[3])),4)]
+
+def simulateTrip(driverID):
+    q = es.get(index='driver', doc_type='rolling', id=driverID)
+    d = q['_source']['destination']
+    c = q['_source']['location']
+    la = Decimal(c[0]) + (((Decimal(d[0]) - Decimal(c[0]))/step_to_dest))
+    lo = Decimal(c[1]) + (((Decimal(d[1]) - Decimal(c[1]))/step_to_dest))
+    return [float(str(la)), float(str(lo))]
+
 
 def generateDriver(city):
     d_id = random.randint(1, total_drivers)
@@ -69,7 +69,7 @@ def generateDriver(city):
             'name': 'driver_{}'.format(d_id),
             'id': d_id,
             'status': 'idle',
-            'location': simulateTrip(d_id, city),
+            'location': randomLoc(d_id, city),
             'ctime': str(datetime.now()),
             'p1': None,
             'p2': None,
@@ -84,20 +84,9 @@ def generateDriver(city):
 
     q = es.get(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400])
     if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
-        driver_mapping['status'] = q['_source']['status']
-        driver_mapping['p1'] = q['_source']['p1']
-        driver_mapping['destination'] = q['_source']['destination']
-        driver_mapping['destinationid'] = q['_source']['destinationid']
-        try:
-            driver_mapping['p2'] = q['_source']['p2']
-        except: 
-            pass
-    #if q['found'] and (q['_source']['status'] in ['ontrip']):
-    if q['found']:
-        if convertTime(q['_source']['ctime']) < (datetime.now() - timedelta(hours = 1)):
-            doc = json.dumps(driver_mapping)
-            q = '{{"doc": {}}}'.format(doc)
-            es.delete(index='driver', doc_type='rolling', id=last_uid)
+        driver_mapping = q['_source']
+        driver_mapping['location'] = simulateTrip(driver_mapping['id'])
+
     return(driver_mapping)
 
 bound = loadBoundaries(boundaries_file)
@@ -109,7 +98,7 @@ def main():
         driver = generateDriver(city)
         u_json = json.dumps(driver).encode('utf-8')
         key = json.dumps(driver['id']).encode('utf-8')
-        #print('{}'.format(driver))
+        print('{}'.format(driver))
         producer.send(b'drv', key, u_json)
     kafka.close()
 

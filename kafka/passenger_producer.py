@@ -3,7 +3,7 @@
 # for the stream. Ideally, this would come from User.
 # Boundaries.csv contains information about the location boundaries for the generation.
 
-totalPassenger = 10
+totalPassenger = 7000
 # Once generated, the request then sent to Kafka.
 
 import csv
@@ -69,11 +69,14 @@ def retention(passanger):
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
     return res['hits']["total"]
 
-
-def convertTime(tm):
-    t = datetime.strptime("{}".format(tm),'%Y-%m-%dT%H:%M:%S.%fZ')
-    return t
-        
+def convertTime(ctime):
+    try:
+        tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
+        ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    except:
+        print "Time conversion failed"
+    return ctime
+  
 def generatePassenger(city, ID):
     last_uid = ID
     bnd = bound[city]
@@ -103,12 +106,6 @@ def generatePassenger(city, ID):
     if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
         pass_mapping = q['_source']
         pass_mapping['ctime'] = str(datetime.now())
-    #if q['found'] and (q['_source']['status'] in ['arrived']):
-    if q['found']:
-
-        if convertTime(q['_source']['ctime']) < (datetime.now() - timedelta(hours = 1)):
-            print ('ID: {} deleted.'.format(ID))
-            es.delete(index='passenger', doc_type='rolling', id=last_uid)
     return(pass_mapping)
 
 
@@ -124,7 +121,7 @@ def main():
         user = generatePassenger(city, random.randint(1,totalPassenger))
         u_json = json.dumps(user).encode('utf-8')
         key = json.dumps(user['id']).encode('utf-8')
-        #print(u_json)
+        print(u_json)
         producer.send(b'psg', key, u_json)
         #time.sleep(2)
 
