@@ -236,8 +236,11 @@ def arrivedMsg():
     'query' : {
             'term' : { 'status' : 'arrived' }
     },
-     "sort": 
-         {'ctime': {'order' : "desc"}},
+     "filter": 
+         {'query': {'exists' : { 'field' : 'match' }}
+    },
+     "sort": [{"ctime": {"order": "desc"}}]
+         
     }
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
     return res
