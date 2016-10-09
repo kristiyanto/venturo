@@ -87,7 +87,8 @@ def generateDriver(city):
         driver_mapping = q['_source']
         driver_mapping['location'] = simulateTrip(driver_mapping['id'])
     if q['found'] and (q['_source']['status'] in ['arrived']): 
-        q = es.delete(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400])
+        q = es.update(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400],
+                     body={'doc': driver_mapping, "doc_as_upsert" : "true"})
 
     return(driver_mapping)
 

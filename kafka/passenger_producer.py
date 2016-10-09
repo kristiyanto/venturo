@@ -100,14 +100,17 @@ def generatePassenger(city, ID):
             'altdest2': att[2][1],
             'altdest2id': att[2][0],
             'origin': [curr_lat, curr_long],
+            'path': [curr_lat, curr_long]
           }
    
     q = es.get(index='passenger', doc_type='rolling', id=last_uid, ignore=[404, 400])
-    if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
+    if not q['found']: return pass_mapping
+    
+    if q['_source']['status'] in ['ontrip', 'pickup']: 
         pass_mapping = q['_source']
         pass_mapping['ctime'] = str(datetime.now())
-    if q['found'] and (q['_source']['status'] in ['arrived']): 
-        q = es.delete(index='passenger', doc_type='rolling', id=last_uid, ignore=[404, 400])
+    if q['_source']['status'] in ['arrived']:
+        q = es.update(index='passenger', doc_type='rolling', id=last_uid, ignore=[404, 400], body={'doc': pass_mapping, "doc_as_upsert" : "true"})
     return(pass_mapping)
 
 

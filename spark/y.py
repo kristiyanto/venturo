@@ -104,12 +104,12 @@ def appendPath(p, location, es):
     Output: elastic's transaction output
 '''
 def updatePassenger(p, data, es):            
-    q = {'doc': data}
+    q = '{{"doc": {}}}'.format(json.dumps(data))
     res = es.update(index='passenger', doc_type='rolling', id=p, body=q)
     return res
         
 def updateDriver(d, data, es):
-    q = {'doc': data}
+    q = '{{"doc": {}}}'.format(json.dumps(data))
     res = es.update(index='driver', doc_type='rolling', id=d, body=q)
     return res
 
@@ -309,6 +309,7 @@ def onride(x):
 
         updatePassenger(p1, doc, es)
         appendPath(p1, location, es)
+        
         if p2: 
             updatePassenger(p2, doc, es)
             appendPath(p2, location, es)
@@ -352,7 +353,7 @@ def updatePass(x):
         doc = json.dumps(p)
         q = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)
         res = es.update(index='passenger', doc_type='rolling', id=p['id'], \
-                        body=q, ignore=[400, 404, 409])
+                        body=q, ignore=[400])
         return (1, q)
 
     else: return(0, "{Welcome back, passenger.}")
