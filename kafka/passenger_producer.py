@@ -3,7 +3,7 @@
 # for the stream. Ideally, this would come from User.
 # Boundaries.csv contains information about the location boundaries for the generation.
 
-totalPassenger = 30000
+totalPassenger = 20000
 # Once generated, the request then sent to Kafka.
 
 import csv
@@ -113,7 +113,7 @@ def generatePassenger(city, ID):
         doc = '{{"doc": {}}}'.format(json.dumps(pass_mapping))
         q = es.update(index='passenger', doc_type='rolling', id=ID, body=doc)
         print ("Reset: {}".format(ID))
-        return pass_mapping
+        return False
     elif q['_source']['status'] == 'wait':
         return False
     else:
