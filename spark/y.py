@@ -121,7 +121,11 @@ def retrievePassenger(pID, es):
     p = es.get(index='passenger', doc_type='rolling', id=pID, \
                    ignore=[404, 400])
     return p['_source'] if p['found'] else False
-        
+
+def shiftLocation(location):
+            newLoc = [round(location[0] - 0.0001,4), round(location[1] - 0.0001,4)]
+            newLoc_ = [round(location[0] + 0.0001,4), round(location[1] + 0.0001,4)]
+            return (newLoc, newLoc_)
     
 def scanPassenger(location, es):
     geo_query = { "from" : 0, "size" : 1,
@@ -348,11 +352,8 @@ def updatePass(x):
         res = es.update(index='passenger', doc_type='rolling', id=p['id'], \
                         body=q, ignore=[400, 404, 409])
         return (1, q)
-    else:
-        doc = {'ctime': p['ctime']}
-        updatePassenger(p['id'], doc, es)
-        q = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)
-        return(0, q)
+
+    else: return(0, {'Welcome back, passenger.'})
 
 
 def main():

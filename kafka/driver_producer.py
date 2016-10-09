@@ -11,7 +11,7 @@ import random
 
 from decimal import *
 from kafka import KeyedProducer, KafkaClient
-from datetime import datetime
+from datetime import datetime, timedelta
 from elasticsearch import Elasticsearch
 
 
@@ -21,7 +21,7 @@ from elasticsearch import Elasticsearch
 boundaries_file = "boundaries.csv"
 
 getcontext().prec=6
-step_to_dest = random.randrange(1,3)
+step_to_dest = random.randrange(1,2)
 
 cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', \
                     'ip-172-31-0-105', 'ip-172-31-0-106']
@@ -31,7 +31,10 @@ kafka = KafkaClient(brokers)
 producer = KeyedProducer(kafka)
 es = Elasticsearch(cluster, port=9200)
 
-
+def convertTime(tm):
+    t = datetime.strptime("{}".format(tm),'%Y-%m-%dT%H:%M:%S.%fZ')
+    return t
+  
 
 def loadBoundaries(boundaries_file):
 
@@ -91,9 +94,7 @@ def generateDriver(city):
             pass
     #if q['found'] and (q['_source']['status'] in ['ontrip']):
     if q['found']:
-
-        t = datetime.strptime("{}".format(driver_mapping['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ')
-        if t < (datetime.now() - timedelta(hours = 1)):
+        if convertTime(q['_source']['ctime']) < (datetime.now() - timedelta(hours = 1)):
             doc = json.dumps(driver_mapping)
             q = '{{"doc": {}}}'.format(doc)
             es.delete(index='driver', doc_type='rolling', id=last_uid)
