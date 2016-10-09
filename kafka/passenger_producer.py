@@ -130,7 +130,7 @@ def main():
             key = json.dumps(user['id']).encode('utf-8')
             print(u_json)
             producer.send(b'psg', key, u_json)
-        #time.sleep(2)
+    time.sleep(5)
 
 if __name__ == '__main__':
     main()

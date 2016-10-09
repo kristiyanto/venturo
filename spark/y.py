@@ -89,12 +89,12 @@ def appendPath(p, location, es):
     res = es.get(index='passenger', doc_type='rolling', id=p, ignore=[400,404])
     if res['found']: 
         res = res['_source']['path']
-        res.append(location)
-        q = '{{"doc": {}}}'.format(json.dumps({'path':res}))
-        es.update(index='passenger', doc_type='rolling', id=p, body=q)
-        return True
-    else:
-        return False
+        if (vincenty(Point(res[:-1]), Point(location)).miles < 100): 
+            res.append(location)
+            q = '{{"doc": {}}}'.format(json.dumps({'path':res}))
+            es.update(index='passenger', doc_type='rolling', id=p, body=q)
+            return True
+    return False
 
     
 '''
@@ -160,13 +160,13 @@ def assign(x):
 
       
     def dispatch(ctime, location, driver, name, p, p1=None, p2=None):
-        #d = retrieveDriver(driver, es)        
+        d = retrieveDriver(driver, es)        
         dDoc = {"ctime": ctime, "location": location}
         if p:
             doc = {"status": "pickup", "driver": driver, "ctime": ctime}
             updatePassenger(p['id'], doc, es)
 
-            if p1: 
+            if d['p1']: 
                 dDoc['p2'] = p['id']
             else:
                 dDoc['p1'] = p['id']
