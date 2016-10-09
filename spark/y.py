@@ -19,6 +19,14 @@ sc = SparkContext(appName="venturo")
 ssc = StreamingContext(sc, 3)
 sc.setLogLevel("WARN")    
 
+
+'''
+    Attempt to convert time from Kafka to Elasticsearch format.
+    
+    Input: time (str)
+    Output: time (time)
+'''
+
 def convertTime(ctime):
     try:
         tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
@@ -26,6 +34,14 @@ def convertTime(ctime):
     except:
         print "Time conversion failed"
     return ctime
+
+
+'''
+    Define is location is close to other location.
+    
+    Input: [lat, long]  and [lat, long]
+    Output: True/False
+'''
 
 def isNearby(location, p):
     return True if (vincenty(Point(location), Point(p)).meters < 300) else False
@@ -49,13 +65,26 @@ def sanityCheck(es, status, ctime, city, location, driver, name=None, p1=None, p
             return True
         else:
             return False
-
+'''
+    Calculate time delta/elapsed time
+    
+    Input: Time A, Time B
+    Output: time delta (Int)
+'''
+        
 def elapsedTime(t1, ctime):
     t = datetime.strptime("{}".format(t1),'%Y-%m-%dT%H:%M:%S.%fZ')
     ctime = datetime.strptime("{}".format(ctime),'%Y-%m-%dT%H:%M:%S.%fZ') #id dis : str & unicode
     elapsed = int((ctime-t).seconds)
     return elapsed
 
+
+'''
+    Add location to passenger's path.
+    
+    Input: PassengerID (str), location [lat, long], elasticsearch
+    Output: Success/Fail (bool)
+'''
 def appendPath(p, location, es):
     res = es.get(index='passenger', doc_type='rolling', id=p, ignore=[400,404])
     if res['found']: 
@@ -67,6 +96,13 @@ def appendPath(p, location, es):
     else:
         return False
 
+    
+'''
+    Modify passanger's record.
+    
+    Input: passangerID (str), data (json), elasticsearch
+    Output: elastic's transaction output
+'''
 def updatePassenger(p, data, es):            
     q = '{{doc: {}}}'.format(json.dumps(data))
     res = es.update(index='passenger', doc_type='rolling', id=p, body=q)
@@ -81,11 +117,16 @@ def retrieveDriver(driver, es):
     _ = es.get(index='driver', doc_type='rolling', id=driver, ignore=[400, 404])
     return _['_source'] if _['found'] else False
   
-
+def retrievePassenger(pID, es):
+    p = es.get(index='passenger', doc_type='rolling', id=pID, \
+                   ignore=[404, 400])
+    return p['_source'] if p['found'] else False
+        
+    
 def scanPassenger(location, es):
     geo_query = { "from" : 0, "size" : 1,
                  "query": {
-            "filtered": {
+              "filtered": {
                 "query" : {
                  "term" : {"status": "wait"}},
                 "filter": {
@@ -138,13 +179,23 @@ def assign(x):
         bulk = (1, '{{doc: {}}}'.format(json.dumps(dDoc)))
         return (bulk)
     
-    if sanityCheck(es, status, ctime, city, location, driver, name, p1=None, p2=None):
+    if sanityCheck(es, status, ctime, city, location, driver, name, p1=None, p2=None) \
+        and not (p1 and p2):
         res = dispatch(ctime, location, driver, name, p1, p2)
     else:
-        res = (0, "{'Message is not sane. Discarded'}")
+        res = (0, "{'Taxi is full.'}")
     return res
 
-
+'''
+        Pickup
+        Process messages from taxi's driver picking up passenger.
+        If driver's location is within 300 meters from assigned passenger, 
+        the passanger is added to the car. 
+        
+        Input: JSON format from taxi
+        Output: Modified JSON format 
+        
+'''
 
 def pickup(x):
     
@@ -164,65 +215,48 @@ def pickup(x):
     es = Elasticsearch(cluster, port=9200)
     
     def hopOn(ctime, location, driver, name, dest, p1=None, p2=None):
+             
+     
+        #d = retrieveDriver(driver, es)
+        p = retrievePassenger(destid, es)
         
-        def shiftLocation(location):
-            newLoc = [round(location[0] - 0.0001,4), round(location[1] - 0.0001,4)]
-            newLoc_ = [round(location[0] + 0.0001,4), round(location[1] + 0.0001,4)]
-            return (newLoc, newLoc_)
-        
-        def retrievePassenger(pID):
-            p = es.get(index='passenger', doc_type='rolling', id=pID, \
-                   ignore=[404, 400])
-            return p['_source'] if p['found'] else False
-        
-        def retrieveDriver(dID):
-            d = es.get(index='driver', doc_type='rolling', id=dID, \
-                   ignore=[404, 400])
-            return d['_source']
-        
-        #d = retrieveDriver(driver)
-        
-        p = retrievePassenger(destid)
-        if not p: return (0, {'Confused Driver.'})
+        # The passenger no longer in the map (e.g waited > 2 hours)
+        if not p: return (0, {'Confused Driver.'}) 
         
         dDoc = {"ctime": ctime, "location": location}
-        
         pDoc = {'ctime': ctime, 'location': location}
         
-        if isNearby(location, p['location']):
+        if isNearby(location, dest):
             dDoc['status'] = "ontrip"
             dDoc['destination'] = p['destination']
             dDoc['destinationid'] = p['destinationid']
             dDoc['origin'] = p['location']
+            
             pDoc['status'] = 'ontrip'
             pDoc['ptime'] = elapsedTime(p['ctime'], ctime)
 
+            if p2:
+                _ = pDoc
+                _['match'] = p2
+                _['location'] = shiftLocation(location)[0]
+                updatePassenger(p1, _, es)
+                appendPath(p1, shiftLocation(location)[0], es)
+                    
+                _ = pDoc
+                _['match'] = p1
+                _['location'] = shiftLocation(location)[1]
+                updatePassenger(p2, _, es)
+                appendPath(p2, shiftLocation(location)[1], es)
+
+                    
             if p1:
                 _ = pDoc
-                _['id'] = p1
-                _['match'] = p['id']
                 _['location'] = shiftLocation(location)[0]
                 updatePassenger(p1, _, es)
                 appendPath(p1, location, es)
-                    
-                _ = pDoc
-                _['id'] = p['id']
-                _['match'] = p1
-                _['location'] = shiftLocation(location)[1]
-                updatePassenger(p['id'], _, es)
-                appendPath(p['id'], location, es)
-                
-                dDoc['p2'] = p['id']
-                    
-            elif not p1:
-                _ = pDoc
-                _['location'] = shiftLocation(location)[0]
-                updatePassenger(p['id'], _, es)
-                appendPath(p['id'], location, es)
-                dDoc['p1'] = p['id']
                 
             else:
-                return (0, {'cab is full'})
+                return (0, {'Confused Driver.'})
                 
         res = updateDriver(driver, dDoc, es)
         bulk = (1, '{{doc: {}}}'.format(json.dumps(dDoc)))
@@ -254,25 +288,27 @@ def onride(x):
     def arrived(ctime, location, dest, driver, name, p1=None, p2=None):
         
         
-        isArrived = True if (vincenty(Point(location), Point(dest)).meters < 300) else False 
+        #isArrived = True if (vincenty(Point(location), Point(dest)).meters < 300) else False 
         #d = retrieveDriver(driver, es)
+        isArrived = isNearby(location, dest)
         
         if isArrived: 
             dDoc = {"status": "idle", "ctime": ctime, "location": dest,\
                "destination": None, "destinationid": None, "p1": None, \
                "p2": None}
             doc = {"status": "arrived", "ctime": ctime, "location": dest}
-            appendPath(p1, location, es)
 
         else:
             doc = {"ctime": ctime, "location": location}
             dDoc = doc
 
-        updateDriver(driver, dDoc, es)
         updatePassenger(p1, doc, es)
+        appendPath(p1, location, es)
         if p2: 
             updatePassenger(p2, doc, es)
             appendPath(p2, location, es)
+        
+        updateDriver(driver, dDoc, es)
 
         return (1, '{{doc: {}}}'.format(json.dumps(dDoc)))
     
