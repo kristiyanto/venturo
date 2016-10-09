@@ -109,6 +109,7 @@ def generatePassenger(city, ID):
     if q['_source']['status'] in ['ontrip', 'pickup']: 
         pass_mapping = q['_source']
         pass_mapping['ctime'] = str(datetime.now())
+        return False
     if q['_source']['status'] in ['arrived']:
         q = es.update(index='passenger', doc_type='rolling', id=last_uid, ignore=[404, 400], body={'doc': pass_mapping, "doc_as_upsert" : "true"})
     return(pass_mapping)
@@ -124,10 +125,11 @@ def main():
     for n in xrange(totalPassenger):
         city = random.choice(['CHI','NYC'])
         user = generatePassenger(city, random.randint(1,totalPassenger))
-        u_json = json.dumps(user).encode('utf-8')
-        key = json.dumps(user['id']).encode('utf-8')
-        print(u_json)
-        producer.send(b'psg', key, u_json)
+        if user:
+            u_json = json.dumps(user).encode('utf-8')
+            key = json.dumps(user['id']).encode('utf-8')
+            print(u_json)
+            producer.send(b'psg', key, u_json)
         #time.sleep(2)
 
 if __name__ == '__main__':
