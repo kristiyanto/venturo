@@ -1,6 +1,6 @@
 # This is the script to populate driver's Data
 # {driver_id, time, curr_lat, curr_long, dest, load}
-total_drivers = 5000
+total_drivers = 2000
 
 
 import time
@@ -32,12 +32,7 @@ producer = KeyedProducer(kafka)
 es = Elasticsearch(cluster, port=9200)
 
 def convertTime(tm):
-    try:
-        t = datetime.strptime("{}".format(tm),'%Y-%m-%dT%H:%M:%S.%fZ')
-        t = t.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-    except:
-        t = datetime.strptime("{}".format(tm),'%Y-%m-%d %H:%M:%S.%f')
-        t = t.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    t = datetime.strptime("{}".format(tm),'%Y-%m-%dT%H:%M:%S.%fZ')
     return t
   
 
@@ -68,13 +63,13 @@ def simulateTrip(c, d):
 
 
 def generateDriver(city):
-    driverID = random.randint(1, total_drivers)
+    d_id = random.randint(1, total_drivers)
     driver_mapping ={ 
             'city': city,
-            'name': 'driver_{}'.format(driverID),
-            'id': driverID,
+            'name': 'driver_{}'.format(d_id),
+            'id': d_id,
             'status': 'idle',
-            'location': randomLoc(driverID, city),
+            'location': randomLoc(d_id, city),
             'ctime': str(datetime.now()),
             'p1': None,
             'p2': None,
@@ -87,17 +82,15 @@ def generateDriver(city):
             'origin': None,
         }
 
-    q = es.get(index='driver', doc_type='rolling', id=driverID, ignore=[404, 400])
-    if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup', '']): 
+    q = es.get(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400])
+    if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
         driver_mapping = q['_source']
         driver_mapping['location'] = simulateTrip(driver_mapping['location'], driver_mapping['destination'])
     if q['found'] and (q['_source']['status'] in ['arrived']): 
         driver_mapping['ctime'] = convertTime(driver_mapping['ctime'])
         doc = json.dumps(driver_mapping)
-        doc = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)
-
-        q = es.update(index='driver', doc_type='rolling', id=driverID, ignore=[404, 400], body=doc)
-        return False
+        q = es.update(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400],
+                     body={'doc': doc, "doc_as_upsert" : "true"})
 
     return(driver_mapping)
 
@@ -108,11 +101,10 @@ def main():
     for n in range(total_drivers):
         city = random.choice(['CHI','NYC'])
         driver = generateDriver(city)
-        if driver:
-            u_json = json.dumps(driver).encode('utf-8')
-            key = json.dumps(driver['id']).encode('utf-8')
-            #print('{}'.format(driver))
-            producer.send(b'drv', key, u_json)
+        u_json = json.dumps(driver).encode('utf-8')
+        key = json.dumps(driver['id']).encode('utf-8')
+        print('{}'.format(driver))
+        producer.send(b'drv', key, u_json)
     kafka.close()
 
 if __name__ == "__main__":

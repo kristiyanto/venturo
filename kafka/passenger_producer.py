@@ -3,7 +3,7 @@
 # for the stream. Ideally, this would come from User.
 # Boundaries.csv contains information about the location boundaries for the generation.
 
-totalPassenger = 15000
+totalPassenger = 20000
 # Once generated, the request then sent to Kafka.
 
 import csv
@@ -69,14 +69,13 @@ def retention(passanger):
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
     return res['hits']["total"]
 
-def convertTime(tm):
+def convertTime(ctime):
     try:
-        t = datetime.strptime("{}".format(tm),'%Y-%m-%dT%H:%M:%S.%fZ')
-        t = t.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
+        ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
     except:
-        t = datetime.strptime("{}".format(tm),'%Y-%m-%d %H:%M:%S.%f')
-        t = t.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-    return t
+        print "Time conversion failed"
+    return ctime
   
 def generatePassenger(city, ID):
     last_uid = ID
@@ -101,7 +100,7 @@ def generatePassenger(city, ID):
             'altdest2': att[2][1],
             'altdest2id': att[2][0],
             'origin': [curr_lat, curr_long],
-            'path': [[curr_lat, curr_long]]
+            'path': [curr_lat, curr_long]
           }
    
     q = es.get(index='passenger', doc_type='rolling', id=ID, ignore=[404, 400])
