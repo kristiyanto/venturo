@@ -1,6 +1,6 @@
 # This is the script to populate driver's Data
 # {driver_id, time, curr_lat, curr_long, dest, load}
-total_drivers = 2000
+total_drivers = 20
 
 
 import time
@@ -32,7 +32,12 @@ producer = KeyedProducer(kafka)
 es = Elasticsearch(cluster, port=9200)
 
 def convertTime(tm):
-    t = datetime.strptime("{}".format(tm),'%Y-%m-%dT%H:%M:%S.%fZ')
+    try:
+        t = datetime.strptime("{}".format(tm),'%Y-%m-%dT%H:%M:%S.%fZ')
+        t = t.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    except:
+        t = datetime.strptime("{}".format(tm),'%Y-%m-%d %H:%M:%S.%f')
+        t = t.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
     return t
   
 
@@ -63,13 +68,14 @@ def simulateTrip(c, d):
 
 
 def generateDriver(city):
-    d_id = random.randint(1, total_drivers)
+    driverID = random.randint(1, total_drivers)
+    driverID = 314
     driver_mapping ={ 
             'city': city,
-            'name': 'driver_{}'.format(d_id),
-            'id': d_id,
+            'name': 'driver_{}'.format(driverID),
+            'id': driverID,
             'status': 'idle',
-            'location': randomLoc(d_id, city),
+            'location': randomLoc(driverID, city),
             'ctime': str(datetime.now()),
             'p1': None,
             'p2': None,
@@ -82,15 +88,18 @@ def generateDriver(city):
             'origin': None,
         }
 
-    q = es.get(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400])
+    q = es.get(index='driver', doc_type='rolling', id=driverID, ignore=[404, 400])
     if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
         driver_mapping = q['_source']
         driver_mapping['location'] = simulateTrip(driver_mapping['location'], driver_mapping['destination'])
     if q['found'] and (q['_source']['status'] in ['arrived']): 
         driver_mapping['ctime'] = convertTime(driver_mapping['ctime'])
         doc = json.dumps(driver_mapping)
-        q = es.update(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400],
-                     body={'doc': doc, "doc_as_upsert" : "true"})
+        doc = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)
+
+        q = es.update(index='driver', doc_type='rolling', id=driverID, ignore=[404, 400],
+                     body=doc)
+        return False
 
     return(driver_mapping)
 
