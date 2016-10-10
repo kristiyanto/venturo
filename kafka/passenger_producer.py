@@ -101,7 +101,7 @@ def generatePassenger(city, ID):
             'altdest2': att[2][1],
             'altdest2id': att[2][0],
             'origin': [curr_lat, curr_long],
-            'path': [curr_lat, curr_long]
+            'path': [[curr_lat, curr_long]]
           }
    
     q = es.get(index='passenger', doc_type='rolling', id=ID, ignore=[404, 400])

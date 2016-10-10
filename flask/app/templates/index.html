@@ -299,6 +299,7 @@
         var _last
         $.getJSON("lines", function(p){
         path = p
+        
         polyline = new L.Polyline(path.path)
         mymap.addLayer(polyline)
         
