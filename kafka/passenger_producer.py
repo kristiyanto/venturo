@@ -109,10 +109,10 @@ def generatePassenger(city, ID):
     
     if q['_source']['status'] in ['ontrip', 'pickup']: 
         return False
-    if q['_source']['status'] in ['arrived'] and (random.randint(1,3) == 1):
+    if q['_source']['status'] in ['arrived']:
         pass_mapping['ctime']  = convertTime(pass_mapping['ctime'])
         doc = '{{"doc": {}}}'.format(json.dumps(pass_mapping))
-        #q = es.update(index='passenger', doc_type='rolling', id=ID, body=doc)
+        q = es.update(index='passenger', doc_type='rolling', id=ID, body=doc)
         print ("Reset: {}".format(ID))
         return False
     elif q['_source']['status'] == 'wait':

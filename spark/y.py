@@ -226,7 +226,8 @@ def assign(x):
         return (bulk)
     
     if sanityCheck(es, status, ctime, city, location, driver, name, p1=None, p2=None) \
-        and not (p1 and p2):
+        and not (retrieveDriver(driver, es)['p1'] and retrieveDriver(driver, es)['p2']):
+
         p = scanPassenger(location, p1, es)
         if p and (p['id'] != p1): 
             res = dispatch(ctime, location, driver, name, p, p1, p2)
