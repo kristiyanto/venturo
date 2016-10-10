@@ -69,13 +69,14 @@ def retention(passanger):
     res = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
     return res['hits']["total"]
 
-def convertTime(ctime):
+def convertTime(tm):
     try:
-        tmp = datetime.strptime("{}".format(ctime), '%Y-%m-%d %H:%M:%S.%f')
-        ctime = tmp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        t = datetime.strptime("{}".format(tm),'%Y-%m-%dT%H:%M:%S.%fZ')
+        t = t.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
     except:
-        print "Time conversion failed"
-    return ctime
+        t = datetime.strptime("{}".format(tm),'%Y-%m-%d %H:%M:%S.%f')
+        t = t.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    return t
   
 def generatePassenger(city, ID):
     last_uid = ID

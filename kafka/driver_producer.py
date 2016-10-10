@@ -69,7 +69,6 @@ def simulateTrip(c, d):
 
 def generateDriver(city):
     driverID = random.randint(1, total_drivers)
-    driverID = 314
     driver_mapping ={ 
             'city': city,
             'name': 'driver_{}'.format(driverID),
