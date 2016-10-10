@@ -105,10 +105,10 @@ def appendPath(p, location, es):
     Output: elastic's transaction output
 '''
 def updatePassenger(p, data, es):
-    _version = es.get(index='passenger', doc_type='rolling', id=p)['_version']
+    #_version = es.get(index='passenger', doc_type='rolling', id=p)['_version']
     q = '{{"doc": {}}}'.format(json.dumps(data))
     res = es.update(index='passenger', doc_type='rolling', id=p, body=q, ignore=[400])['_version']
-    return _version < res
+    #return _version < res
         
 def updateDriver(d, data, es):
     _version = es.get(index='driver', doc_type='rolling', id=d)['_version']
@@ -150,6 +150,8 @@ def scanPassenger(location, p1, es):
                    "unit": "km", 
           "distance_type": "plane" 
                   }}],}
+
+
     
     if p1: 
         p = retrievePassenger(p1, es)
@@ -169,7 +171,7 @@ def scanPassenger(location, p1, es):
 
                  "filter": {
                 "geo_distance": {
-                    "distance": '2km',
+                    "distance": '3km',
                "distance_type": "plane", 
                     "location": location }},
 
@@ -225,16 +227,12 @@ def assign(x):
         bulk = (1, driver, '{{doc: {}}}'.format(json.dumps(dDoc)))
         return (bulk)
     
-    if sanityCheck(es, status, ctime, city, location, driver, name, p1=None, p2=None) \
-        and not (retrieveDriver(driver, es)['p1'] and retrieveDriver(driver, es)['p2']):
-
-        p = scanPassenger(location, p1, es)
-        if p and (p['id'] != p1): 
-            res = dispatch(ctime, location, driver, name, p, p1, p2)
-        else:
-            res = (0, "{No nearbyPassanger}")
-    else:
-        res = (0, "{'Taxi is full.'}")
+    res = (0, "{No nearbyPassanger}")
+    if sanityCheck(es, status, ctime, city, location, driver, name, p1=None, p2=None):
+        d = retrieveDriver(driver, es)
+        if not (d['p1'] and d['p2']):
+            p = scanPassenger(location, p1, es)
+            if p: res = dispatch(ctime, location, driver, name, p, p1, p2)
     return res
 
 

@@ -292,33 +292,7 @@
     var DATA;
         
     
-    function drawPath()
-    {
-        var path
-        var _first
-        var _last
-        $.getJSON("lines", function(p){
-        path = p
-        
-        polyline = new L.Polyline(path.path)
-        mymap.addLayer(polyline)
-        
-        var circle = L.circle(p.location, 50, {
-        color: 'yellow',
-        fillOpacity: 0.5
-        }).addTo(mymap);
-            
-        var circle = L.circle(p.path[0], 50, {
-        color: 'purple',
-        fillOpacity: 0.5
-        }).addTo(mymap);
 
-        
-        });
-        
-  
-     
-    }
         
     function currentTime()
     {
@@ -423,14 +397,6 @@
     }
 
 
-    $(function () {
-    setInterval(currentTime, 500);
-    setInterval(clearMap, 4999);
-    setInterval(drawPassengers, 5000);
-    setInterval(drawDrivers, 5000);
-    setInterval(drawPath, 1000);
-
-    });
     
     function centerIt(){
      mymap.panTo(DATA.mLoc);
@@ -448,7 +414,39 @@
      mymap.panTo(DATA.arrMsgLoc);
     }
 
+    function drawPath()
+    {
+        var path
+        var _first
+        var _last
+        $.getJSON("lines", function(p){
         
+        if (p.path) {
+        polyline = new L.Polyline(p.path)
+        mymap.addLayer(polyline)
+        
+        var circle = L.circle(p.location, 50, {
+        color: 'yellow',
+        fillOpacity: 0.5
+        }).addTo(mymap);
+            
+        var circle = L.circle(p.path[0], 50, {
+        color: 'purple',
+        fillOpacity: 0.5
+        }).addTo(mymap);
+        }
+        
+        });
+    }
+        
+    $(function () {
+    setInterval(currentTime, 500);
+    setInterval(clearMap, 4999);
+    setInterval(drawPassengers, 5000);
+    setInterval(drawDrivers, 5000);
+    setInterval(drawPath, 1000);
+
+    });
 
     </script>
 
