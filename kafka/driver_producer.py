@@ -109,10 +109,11 @@ def main():
     for n in range(total_drivers):
         city = random.choice(['CHI','NYC'])
         driver = generateDriver(city)
-        u_json = json.dumps(driver).encode('utf-8')
-        key = json.dumps(driver['id']).encode('utf-8')
-        print('{}'.format(driver))
-        producer.send(b'drv', key, u_json)
+        if driver:
+            u_json = json.dumps(driver).encode('utf-8')
+            key = json.dumps(driver['id']).encode('utf-8')
+            #print('{}'.format(driver))
+            producer.send(b'drv', key, u_json)
     kafka.close()
 
 if __name__ == "__main__":
