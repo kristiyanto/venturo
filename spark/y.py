@@ -141,6 +141,8 @@ def scanPassenger(location, p1, es):
                  "query" : {
                   "bool" : {
                   "must" : { "term" : { "status" : "wait" }},
+              "must_not" : { "term" : { "id" : p['id'] }},
+
                  "filter": {
                 "geo_distance": {
                     "distance": '2km',
@@ -167,7 +169,7 @@ def scanPassenger(location, p1, es):
                  "term" : {"status": "wait"}},
                 "filter": {
                     "geo_distance": {
-                        "distance": '3km',
+                        "distance": '2km',
                         "distance_type": "plane", 
                         "location": location }}
             }},
@@ -225,13 +227,14 @@ def assign(x):
     if sanityCheck(es, status, ctime, city, location, driver, name, p1=None, p2=None) \
         and not (p1 and p2):
         p = scanPassenger(location, p1, es)
-        if p: 
+        if p and (p['id'] != p1): 
             res = dispatch(ctime, location, driver, name, p, p1, p2)
         else:
             res = (0, "{No nearbyPassanger}")
     else:
         res = (0, "{'Taxi is full.'}")
     return res
+
 
 '''
         Pickup
