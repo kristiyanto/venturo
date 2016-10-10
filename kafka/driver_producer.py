@@ -1,6 +1,6 @@
 # This is the script to populate driver's Data
 # {driver_id, time, curr_lat, curr_long, dest, load}
-total_drivers = 5
+total_drivers = 500
 
 
 import time
@@ -88,10 +88,10 @@ def generateDriver(city):
         }
 
     q = es.get(index='driver', doc_type='rolling', id=driverID, ignore=[404, 400])
-    if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
+    if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup', '']): 
         driver_mapping = q['_source']
         driver_mapping['location'] = simulateTrip(driver_mapping['location'], driver_mapping['destination'])
-    if q['found'] and (q['_source']['status'] in ['arrived']) and random.randint(1,2) == 1: 
+    if q['found'] and (q['_source']['status'] in ['arrived']): 
         driver_mapping['ctime'] = convertTime(driver_mapping['ctime'])
         doc = json.dumps(driver_mapping)
         doc = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)

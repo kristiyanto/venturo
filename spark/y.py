@@ -48,7 +48,9 @@ def isNearby(location, p):
 
 def sanityCheck(es, status, ctime, city, location, driver, name=None, p1=None, p2=None):
     ctime = convertTime(ctime)
-    if status == "idle":
+    res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
+
+    if status == "idle" and not res['found']:
         doc = {'status': 'idle', 'ctime': ctime, 'location': location, \
                    'name': name, 'city': city, 'destination': None, 'destinationid': None,\
                   'p1': None, 'p2': None, 'id': driver}
@@ -102,15 +104,18 @@ def appendPath(p, location, es):
     Input: passangerID (str), data (json), elasticsearch
     Output: elastic's transaction output
 '''
-def updatePassenger(p, data, es):            
+def updatePassenger(p, data, es):
+    _version = es.get(index='passenger', doc_type='rolling', id=p)['_version']
     q = '{{"doc": {}}}'.format(json.dumps(data))
-    res = es.update(index='passenger', doc_type='rolling', id=p, body=q, ignore=[409])
-    return res
+    res = es.update(index='passenger', doc_type='rolling', id=p, body=q, ignore=[400])['_version']
+    return _version < res
         
 def updateDriver(d, data, es):
+    _version = es.get(index='driver', doc_type='rolling', id=d)['_version']
+
     q = '{{"doc": {}}}'.format(json.dumps(data))
-    res = es.update(index='driver', doc_type='rolling', id=d, body=q)
-    return res
+    res = es.update(index='driver', doc_type='rolling', id=d, body=q)['_version']
+    return _version < res
 
 def retrieveDriver(driver, es):
     _ = es.get(index='driver', doc_type='rolling', id=driver, ignore=[400, 404])
@@ -127,6 +132,25 @@ def shiftLocation(location):
             return (newLoc, newLoc_)
     
 def scanPassenger(location, p1, es):
+    geo_query = { "from" : 0, "size" : 1,
+                 "query": {
+              "filtered": {
+                "query" : {
+                 "term" : {"status": "wait"}},
+                "filter": {
+                    "geo_distance": {
+                        "distance": '2km',
+                        "distance_type": "plane", 
+                        "location": location }}
+            }},
+                   "sort": [{
+          "_geo_distance": {
+               "location": location,
+                  "order": "asc",
+                   "unit": "km", 
+          "distance_type": "plane" 
+                  }}],}
+    
     if p1: 
         p = retrievePassenger(p1, es)
         if p: 
@@ -161,27 +185,6 @@ def scanPassenger(location, p1, es):
           "distance_type": "plane" 
                   }}],
                         }
-    else:
-        geo_query = { "from" : 0, "size" : 1,
-                 "query": {
-              "filtered": {
-                "query" : {
-                 "term" : {"status": "wait"}},
-                "filter": {
-                    "geo_distance": {
-                        "distance": '2km',
-                        "distance_type": "plane", 
-                        "location": location }}
-            }},
-                   "sort": [{
-          "_geo_distance": {
-               "location": location,
-                  "order": "asc",
-                   "unit": "km", 
-          "distance_type": "plane" 
-                  }}],
-                    
-                    }
 
     res = es.search(index='passenger', doc_type='rolling', body=geo_query, ignore=[400])
     return res['hits']['hits'][0]["_source"] if res['hits']['hits'] else False
@@ -208,8 +211,7 @@ def assign(x):
         dDoc = {"ctime": ctime, "location": location}
         if p:
             doc = {"status": "pickup", "driver": driver, "ctime": ctime}
-            updatePassenger(p['id'], doc, es)
-
+            
             if d['p1']: 
                 dDoc['p2'] = p['id']
             else:
@@ -218,8 +220,7 @@ def assign(x):
             dDoc['status'] = "pickup"
             dDoc['destination'] = p['location']
             dDoc['destinationid'] = p['id']
-
-        #updateDriver(driver, dDoc, es)
+            if updateDriver(d['id'], dDoc, es): updatePassenger(p['id'], doc, es)
         
         bulk = (1, driver, '{{doc: {}}}'.format(json.dumps(dDoc)))
         return (bulk)
@@ -284,7 +285,9 @@ def pickup(x):
             p1 = d['p1']
             p2 = d['p2']
             
-            if p2:
+            updateSucceed = updateDriver(driver, dDoc, es)
+            
+            if p2 and updateSucceed:
                 _ = pDoc
                 _['match'] = p2
                 _['location'] = shiftLocation(location)[0]
@@ -298,7 +301,7 @@ def pickup(x):
                 appendPath(p2, location[1], es)
 
                     
-            if p1:
+            if p1 and updateSucceed:
                 _ = pDoc
                 _['location'] = shiftLocation(location)[0]
                 updatePassenger(p1, _, es)
@@ -307,7 +310,6 @@ def pickup(x):
             else:
                 return (0, {'Confused Driver.'})
                 
-        #updateDriver(driver, dDoc, es)
         bulk = (1, driver, '{{doc: {}}}'.format(json.dumps(dDoc)))
         return (bulk) 
 
@@ -351,12 +353,18 @@ def onride(x):
         else:
             doc = {"ctime": ctime, "location": location}
             dDoc = doc
-            updatePassenger(p1, doc, es)
-            if p2: updatePassenger(p2, doc, es)
-            
         
-        #updateDriver(driver, dDoc, es)
-
+        updateSucceed = updateDriver(driver, dDoc, es) 
+        
+        if p2 and updateSucceed:
+            updatePassenger(p2, doc, es)
+            updatePassenger(p1, doc, es)
+            appendPath(p1, location, es)
+            appendPath(p2, location, es)
+        elif p1 and updateSucceed:
+            updatePassenger(p1, doc, es)
+            appendPath(p1, location, es)
+            
         return (1, driver, '{{doc: {}}}'.format(json.dumps(dDoc)))
     
     if  sanityCheck(es, status, ctime, city, location, driver, name):
@@ -403,9 +411,9 @@ def bulkStore(rdd):
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
     es = Elasticsearch(cluster, port=9200)
     
-    for x in rdd:
-        q = '{{"doc": {}}}'.format(json.dumps(x[2]))
-        res = es.update(index='driver', doc_type='rolling', id=x[1], body=x[2])
+    #for x in rdd:
+    #    q = '{{"doc": {}}}'.format(json.dumps(x[2]))
+    #    res = es.update(index='driver', doc_type='rolling', id=x[1], body=x[2])
     
     
 
