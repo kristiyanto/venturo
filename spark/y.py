@@ -48,7 +48,8 @@ def isNearby(location, p):
 
 def sanityCheck(es, status, ctime, city, location, driver, name=None, p1=None, p2=None):
     ctime = convertTime(ctime)
-    if status == "idle":
+    res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
+    if status == "idle" and not res['found']:
         doc = {'status': 'idle', 'ctime': ctime, 'location': location, \
                    'name': name, 'city': city, 'destination': None, 'destinationid': None,\
                   'p1': None, 'p2': None, 'id': driver}

@@ -1,6 +1,6 @@
 # This is the script to populate driver's Data
 # {driver_id, time, curr_lat, curr_long, dest, load}
-total_drivers = 2000
+total_drivers = 50
 
 
 import time
@@ -89,8 +89,8 @@ def generateDriver(city):
     if q['found'] and (q['_source']['status'] in ['arrived']): 
         driver_mapping['ctime'] = convertTime(driver_mapping['ctime'])
         doc = json.dumps(driver_mapping)
-        q = es.update(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400],
-                     body={'doc': doc, "doc_as_upsert" : "true"})
+        #q = es.update(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400],
+        #             body={'doc': doc, "doc_as_upsert" : "true"})
 
     return(driver_mapping)
 
