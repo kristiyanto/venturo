@@ -3,7 +3,7 @@
 # for the stream. Ideally, this would come from User.
 # Boundaries.csv contains information about the location boundaries for the generation.
 
-totalPassenger = 50
+totalPassenger = 20000
 # Once generated, the request then sent to Kafka.
 
 import csv
