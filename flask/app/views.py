@@ -89,9 +89,6 @@ def lines():
     res = arrivedMsg()
     if len(res['hits']['hits']) > 0:
         res = res['hits']['hits'][0]['_source']
-        path = res['path']
-        sorted(path , key=lambda k: [k[1], k[0]])
-        res['path'] = path
     else:
         res = []
     return json.dumps(res)
