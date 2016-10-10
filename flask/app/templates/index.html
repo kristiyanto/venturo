@@ -294,15 +294,28 @@
     
     function drawPath()
     {
-        $.getJSON("lines", function(path){
+        var path
+        var _first
+        var _last
+        $.getJSON("lines", function(p){
+        path = p
         polyline = new L.Polyline(path.path)
         mymap.addLayer(polyline)
-        });
         
-        var circle = L.circle(path.location, 50, {
+        var circle = L.circle(p.location, 50, {
         color: 'yellow',
         fillOpacity: 0.5
         }).addTo(mymap);
+            
+        var circle = L.circle(p.path[0], 50, {
+        color: 'purple',
+        fillOpacity: 0.5
+        }).addTo(mymap);
+
+        
+        });
+        
+  
      
     }
         
@@ -348,11 +361,6 @@
       var circle = L.circle(data.mLoc, 30, {
       color: 'black',
       fillOpacity: 0.2
-      }).addTo(mymap);
-        
-      var circle = L.circle(data.arrMsgLoc, 250, {
-      color: 'yellow',
-      fillOpacity: 0.5
       }).addTo(mymap);
       
       var circle = L.circle(data.arrMsgLoc, 30, {

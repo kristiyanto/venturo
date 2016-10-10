@@ -89,11 +89,10 @@ def appendPath(p, location, es):
     res = es.get(index='passenger', doc_type='rolling', id=p, ignore=[400,404])
     if res['found']: 
         res = res['_source']['path']
-        if (vincenty(Point(res[-1]), Point(location)).miles < 100): 
-            res.append(location)
-            q = '{{"doc": {}}}'.format(json.dumps({'path':res}))
-            es.update(index='passenger', doc_type='rolling', id=p, body=q)
-            return True
+        res.append(location)
+        q = '{{"doc": {}}}'.format(json.dumps({'path':res}))
+        es.update(index='passenger', doc_type='rolling', id=p, body=q)
+        return True
     return False
 
     
@@ -131,6 +130,12 @@ def scanPassenger(location, p1, es):
     if p1: 
         p = retrievePassenger(p1, es)
         if p: 
+            shoulds = []
+            for i in [p['destinationid'],p['altdest1id'],p['altdest1id']]:
+                shoulds.append({'match': {'destinationid': i}})
+                shoulds.append({'match': {'altdest1id': i}}) 
+                shoulds.append({'match': {'altdest1id': i}}) 
+    
             destinations = [p['destinationid'], p['altdest1id'], p['altdest2id']]
             geo_query = {"size": 1, 
                  "query" : {
@@ -138,16 +143,22 @@ def scanPassenger(location, p1, es):
                   "must" : { "term" : { "status" : "wait" }},
                  "filter": {
                 "geo_distance": {
-                    "distance": '5km',
+                    "distance": '2km',
                "distance_type": "plane", 
                     "location": location }},
 
-                "should" : [{"terms" : { "destinationid" : destinations }},
-                            {"terms" : { "altdest1id" : destinations }},
-                            {"terms" : { "altdest2id" : destinations},}],
+                "should" : shoulds,
               "minimum_should_match" : 1,
                              "boost" : 1.0
-          }}}
+                    }},
+                   "sort": [{
+          "_geo_distance": {
+               "location": location,
+                  "order": "asc",
+                   "unit": "km", 
+          "distance_type": "plane" 
+                  }}],
+                        }
     else:
         geo_query = { "from" : 0, "size" : 1,
                  "query": {
@@ -159,7 +170,16 @@ def scanPassenger(location, p1, es):
                         "distance": '3km',
                         "distance_type": "plane", 
                         "location": location }}
-            }}}
+            }},
+                   "sort": [{
+          "_geo_distance": {
+               "location": location,
+                  "order": "asc",
+                   "unit": "km", 
+          "distance_type": "plane" 
+                  }}],
+                    
+                    }
 
     res = es.search(index='passenger', doc_type='rolling', body=geo_query, ignore=[400])
     return res['hits']['hits'][0]["_source"] if res['hits']['hits'] else False
@@ -323,17 +343,14 @@ def onride(x):
         if isArrived: 
             dDoc = {"status": "arrived", "ctime": ctime, "location": location}
             doc = {"status": "arrived", "ctime": ctime, "location": shiftLocation(location)[1]}
-
+            appendPath(p1, location, es)
+            if p2: appendPath(p2, location, es)
         else:
             doc = {"ctime": ctime, "location": location}
             dDoc = doc
-
-        updatePassenger(p1, doc, es)
-        appendPath(p1, location, es)
-        
-        if p2: 
-            updatePassenger(p2, doc, es)
-            appendPath(p2, location, es)
+            updatePassenger(p1, doc, es)
+            if p2: updatePassenger(p2, doc, es)
+            
         
         #updateDriver(driver, dDoc, es)
 

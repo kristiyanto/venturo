@@ -91,7 +91,7 @@ def generateDriver(city):
     if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
         driver_mapping = q['_source']
         driver_mapping['location'] = simulateTrip(driver_mapping['location'], driver_mapping['destination'])
-    if q['found'] and (q['_source']['status'] in ['arrived']): 
+    if q['found'] and (q['_source']['status'] in ['arrived']) random.randint(1,2) == 1: 
         driver_mapping['ctime'] = convertTime(driver_mapping['ctime'])
         doc = json.dumps(driver_mapping)
         doc = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)
