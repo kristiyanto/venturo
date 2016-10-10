@@ -32,7 +32,12 @@ producer = KeyedProducer(kafka)
 es = Elasticsearch(cluster, port=9200)
 
 def convertTime(tm):
-    t = datetime.strptime("{}".format(tm),'%Y-%m-%dT%H:%M:%S.%fZ')
+    try:
+        t = datetime.strptime("{}".format(tm),'%Y-%m-%dT%H:%M:%S.%fZ')
+        t = t.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    except:
+        t = datetime.strptime("{}".format(tm),'%Y-%m-%d %H:%M:%S.%f')
+        t = t.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
     return t
   
 
