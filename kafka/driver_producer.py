@@ -96,7 +96,7 @@ def generateDriver(city):
         doc = json.dumps(driver_mapping)
         doc = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)
 
-        q = es.update(index='driver', doc_type='rolling', id=driverID, ignore=[404, 400],
+        #q = es.update(index='driver', doc_type='rolling', id=driverID, ignore=[404, 400],
                      body=doc)
         return False
 
