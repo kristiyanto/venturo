@@ -47,25 +47,29 @@ def isNearby(location, p):
     return True if (vincenty(Point(location), Point(p)).meters < 300) else False
 
 def sanityCheck(es, status, ctime, city, location, driver, name=None, p1=None, p2=None):
+
     ctime = convertTime(ctime)
     res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
+    
     if status == "idle" and not res['found']:
         doc = {'status': 'idle', 'ctime': ctime, 'location': location, \
                    'name': name, 'city': city, 'destination': None, 'destinationid': None,\
                   'p1': None, 'p2': None, 'id': driver}
         
-        doc = json.dumps(doc)
-        q = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(doc)
+        q = json.dumps(doc)
+        q = '{{"doc": {},  "doc_as_upsert" : "true"}}'.format(q)
         res = es.update(index='driver', doc_type='rolling', id=driver, \
                                 body=q, ignore=[400, 404])
-        return True
+        return doc
     
     else:
         res = es.get(index='driver', doc_type='rolling', id=driver, ignore=[404, 400])
         if res['found'] and (res['_source']['status'] == status): 
-            return True
+            return res['_source']
         else:
             return False
+        
+        
 '''
     Calculate time delta/elapsed time
     
@@ -129,38 +133,62 @@ def shiftLocation(location):
             return (newLoc, newLoc_)
     
 def scanPassenger(location, p1, es):
-    if p1: 
-        p = retrievePassenger(p1, es)
-        if p: 
-            destinations = [p['destinationid'], p['altdest1id'], p['altdest2id']]
-            geo_query = {"size": 1, 
-                 "query" : {
-                  "bool" : {
-                  "must" : { "term" : { "status" : "wait" }},
-                 "filter": {
-                "geo_distance": {
-                    "distance": '5km',
-               "distance_type": "plane", 
-                    "location": location }},
-
-                "should" : [{"terms" : { "destinationid" : destinations }},
-                            {"terms" : { "altdest1id" : destinations }},
-                            {"terms" : { "altdest2id" : destinations},}],
-              "minimum_should_match" : 1,
-                             "boost" : 1.0
-          }}}
-    else:
-        geo_query = { "from" : 0, "size" : 1,
+    geo_query = { "from" : 0, "size" : 1,
                  "query": {
               "filtered": {
                 "query" : {
                  "term" : {"status": "wait"}},
                 "filter": {
                     "geo_distance": {
-                        "distance": '3km',
+                        "distance": '2km',
                         "distance_type": "plane", 
                         "location": location }}
-            }}}
+            }},
+                   "sort": [{
+          "_geo_distance": {
+               "location": location,
+                  "order": "asc",
+                   "unit": "km", 
+          "distance_type": "plane" 
+                  }}],}
+
+
+    
+    if p1: 
+        p = retrievePassenger(p1, es)
+        if p: 
+            shoulds = []
+            for i in [p['destinationid'],p['altdest1id'],p['altdest1id']]:
+                shoulds.append({'match': {'destinationid': i}})
+                shoulds.append({'match': {'altdest1id': i}}) 
+                shoulds.append({'match': {'altdest1id': i}}) 
+    
+            destinations = [p['destinationid'], p['altdest1id'], p['altdest2id']]
+            geo_query = {"size": 1, 
+                 "query" : {
+                  "bool" : {
+                  "must" : { "term" : { "status" : "wait" }},
+              "must_not" : { "term" : { "id" : p['id'] }},
+
+                 "filter": {
+                "geo_distance": {
+                    "distance": '6km',
+               "distance_type": "plane", 
+                    "location": location }},
+
+                "should" : shoulds,
+              "minimum_should_match" : 1,
+                             "boost" : 1.0
+                    }},
+                   "sort": [{
+          "_geo_distance": {
+               "location": location,
+                  "order": "asc",
+                   "unit": "km", 
+          "distance_type": "plane" 
+                  }}],
+                        }
+
 
     res = es.search(index='passenger', doc_type='rolling', body=geo_query, ignore=[400])
     return res['hits']['hits'][0]["_source"] if res['hits']['hits'] else False
@@ -180,19 +208,31 @@ def assign(x):
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
     es = Elasticsearch(cluster, port=9200)
 
-
       
-    def dispatch(ctime, location, driver, name, p, p1=None, p2=None):
-        d = retrieveDriver(driver, es)        
+    def dispatch(ctime, d, location, driver, name, p, p1=None, p2=None):
         dDoc = {"ctime": ctime, "location": location}
         if p:
             doc = {"status": "pickup", "driver": driver, "ctime": ctime}
-            updatePassenger(p['id'], doc, es)
 
-            if d['p1']: 
+            p1 = d['p1']
+            p2 = d['p2']
+            
+            if p2: return (0, '{abort}')
+            
+            elif p1: 
                 dDoc['p2'] = p['id']
+                
+                doc['match'] = p1
+                updatePassenger(p['id'], doc, es)
+                appendPath(p['id'], location, es)
+
+                doc['match'] = p['id']
+                updatePassenger(p1, doc, es)
+                appendPath(p1, location, es)
             else:
                 dDoc['p1'] = p['id']
+                updatePassenger(p['id'], doc, es)
+                appendPath(p['id'], location, es)
                 
             dDoc['status'] = "pickup"
             dDoc['destination'] = p['location']
@@ -200,18 +240,17 @@ def assign(x):
 
         #updateDriver(driver, dDoc, es)
         
-        bulk = (1, driver, '{{doc: {}}}'.format(json.dumps(dDoc)))
+        bulk = (1, driver, p1, p2, '{{doc: {}}}'.format(json.dumps(dDoc)))
         return (bulk)
     
-    if sanityCheck(es, status, ctime, city, location, driver, name, p1=None, p2=None) \
-        and not (p1 and p2):
+    res = (0, "{'Taxi is full.'}")
+    
+    d = sanityCheck(es, status, ctime, city, location, driver, name, p1=None, p2=None)
+    if d and not p2:
         p = scanPassenger(location, p1, es)
-        if p: 
-            res = dispatch(ctime, location, driver, name, p, p1, p2)
-        else:
-            res = (0, "{No nearbyPassanger}")
-    else:
-        res = (0, "{'Taxi is full.'}")
+        if p: res = dispatch(ctime, d, location, driver, name, p, p1, p2)
+        else: res = (0, "{No nearby Passanger}")
+            
     return res
 
 '''
@@ -241,11 +280,8 @@ def pickup(x):
     cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
     es = Elasticsearch(cluster, port=9200)
     
-    def hopOn(ctime, location, driver, name, dest, p, p1=None, p2=None):
-             
-     
-        # The passenger no longer in the map (e.g waited > 2 hours)
-        
+    def hopOn(ctime, d, location, driver, name, dest, p, p1=None, p2=None):
+                     
         dDoc = {"ctime": ctime, "location": location}
         pDoc = {'ctime': ctime, 'location': location}
         
@@ -258,22 +294,19 @@ def pickup(x):
             pDoc['status'] = 'ontrip'
             pDoc['ptime'] = elapsedTime(p['ctime'], ctime)
 
-            d = retrieveDriver(driver, es)
             p1 = d['p1']
             p2 = d['p2']
             
             if p2:
                 _ = pDoc
-                _['match'] = p2
                 _['location'] = shiftLocation(location)[0]
                 updatePassenger(p1, _, es)
                 appendPath(p1, location, es)
                     
                 _ = pDoc
-                _['match'] = p1
                 _['location'] = shiftLocation(location)[1]
                 updatePassenger(p2, _, es)
-                appendPath(p2, location[1], es)
+                appendPath(p2, location, es)
 
                     
             if p1:
@@ -286,16 +319,15 @@ def pickup(x):
                 return (0, {'Confused Driver.'})
                 
         #updateDriver(driver, dDoc, es)
-        bulk = (1, driver, '{{doc: {}}}'.format(json.dumps(dDoc)))
+        bulk = (1, driver, p1, p2, '{{doc: {}}}'.format(json.dumps(dDoc)))
         return (bulk) 
-
-    if sanityCheck(es, status, ctime, city, location, driver):
+    
+    res = (0, '{invalid}')
+    d = sanityCheck(es, status, ctime, city, location, driver)
+    if d: 
         p = retrievePassenger(destid, es)
-        if p: 
-            res = hopOn(ctime, location, driver, name, dest, p, p1, p2) 
-
-    else: 
-        res = (0, '{invalid}')
+        if p: res = hopOn(ctime, d, location, driver, name, dest, p, p1, p2) 
+        
 
     return res
 
@@ -314,10 +346,10 @@ def onride(x):
     es = Elasticsearch(cluster, port=9200)
  
     
-    def arrived(ctime, location, dest, driver, name, p1=None, p2=None):
+    def arrived(ctime, d, location, dest, driver, name, p1=None, p2=None):
 
         isArrived = isNearby(location, dest)
-        d = retrieveDriver(driver, es)
+
         p1 = d['p1']
         p2 = d['p2']
         
@@ -338,12 +370,13 @@ def onride(x):
         
         #updateDriver(driver, dDoc, es)
 
-        return (1, driver, '{{doc: {}}}'.format(json.dumps(dDoc)))
-    
-    if  sanityCheck(es, status, ctime, city, location, driver, name):
-        res = arrived(ctime, location, dest, driver, name, p1, p2)
-    else:
-        res = (0, '{invalid message}')
+        return (1, driver, p1, p2, '{{doc: {}}}'.format(json.dumps(dDoc)))
+
+    res = (0, '{invalid message}')    
+    d = sanityCheck(es, status, ctime, city, location, driver, name)
+    if d: res = arrived(ctime, d, location, dest, driver, name, p1, p2)
+
+        
     return res
         
 
@@ -385,10 +418,16 @@ def bulkStore(rdd):
     es = Elasticsearch(cluster, port=9200)
     
     for x in rdd:
-        q = '{{"doc": {}}}'.format(json.dumps(x[2]))
-        res = es.update(index='driver', doc_type='rolling', id=x[1], body=x[2])
+        #p1 = x[2]
+        #p2 = x[3]
+        res = es.update(index='driver', doc_type='rolling', id=x[1], body=x[4])
     
     
+def sendToES(x):
+    cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
+    es = Elasticsearch(cluster, port=9200)
+    
+    res = es.update(index='driver', doc_type='rolling', id=x[1], body=x[4])
 
 
 def main():
@@ -409,9 +448,12 @@ def main():
         .filter(lambda x: x[0]==1).foreachRDD(lambda rdd: rdd.foreachPartition(bulkStore))
         
     secondPsg = D.filter(lambda x: x['status']=='ontrip')\
-        .filter(lambda x: x['p2'] is None).map(assign).filter(lambda x: x[0]==1)\
+        .filter(lambda x: x['p2'] is None)\
+        .map(assign).filter(lambda x: x[0]==1)\
         .foreachRDD(lambda rdd: rdd.foreachPartition(bulkStore))
-        
+
+    #idle = D.filter(lambda x: x['status']=='idle').map(assign)\
+    #    .filter(lambda x: x[0]==1).union(secondPsg).repartition(1).foreachRDD(lambda rdd: rdd.foreachPartition(bulkStore))
         
     riding = D.filter(lambda x: x['status']=='ontrip').map(onride)\
         .filter(lambda x: x[0]==1).foreachRDD(lambda rdd: rdd.foreachPartition(bulkStore))
