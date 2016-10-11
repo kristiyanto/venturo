@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/kristiyanto/venturo.svg?branch=master)](https://travis-ci.org/kristiyanto/venturo)
+
 <img src="media/insight.png"/>
 
 # VENTURO: an Insight data science project
