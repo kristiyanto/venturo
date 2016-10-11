@@ -1,6 +1,6 @@
 # This is the script to populate driver's Data
 # {driver_id, time, curr_lat, curr_long, dest, load}
-total_drivers = 10000
+total_drivers = 1000
 
 
 import time
@@ -86,16 +86,20 @@ def generateDriver(city):
             'altdest2id': None,
             'origin': None,
         }
-
+    
     q = es.get(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400])
+
     if q['found'] and (q['_source']['status'] in ['ontrip', 'pickup']): 
         driver_mapping = q['_source']
         driver_mapping['location'] = simulateTrip(driver_mapping['location'], driver_mapping['destination'])
-    if q['found'] and (q['_source']['status'] in ['arrived']): 
+    if q['found']:
+        isNotLastHour = datetime.now() - datetime.strptime("{}".format(q['_source']['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ') < timedelta(hours=1)
+        
         driver_mapping['ctime'] = convertTime(driver_mapping['ctime'])
-        doc = json.dumps(driver_mapping)
-        #q = es.update(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400],
-        #             body={'doc': doc, "doc_as_upsert" : "true"})
+        if isNotLastHour: 
+            doc = '{{"doc": {}}}'.format(json.dumps(driver_mapping))
+            q = es.update(index='driver', doc_type='rolling', id=d_id, ignore=[404, 400],\
+                     body=doc)
 
     return(driver_mapping)
 
