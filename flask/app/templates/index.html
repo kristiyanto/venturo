@@ -218,7 +218,7 @@
                         </div>
                         <a href="#">
                             <div class="panel-footer">
-                                <span class="pull-left">Average waiting time : &nbsp;</span>
+                                <span class="pull-left">Avg pickup time : &nbsp;</span>
                                 <span class="pull-left" id='avgwait'></span>
                                 <span class="pull-right"><i class="fa fa-arrow-circle-right"></i></span>
                                 <div class="clearfix"></div>
@@ -259,6 +259,38 @@
                     </div>
                     <!-- /.panel -->
                 </div>
+                
+                    <div class="col-lg-6">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            Distance Travelled
+                        </div>
+                        <!-- /.panel-heading -->
+                        <div class="panel-body">
+                            <div class="flot-chart">
+                                                            <div id="morris-area-chart"></div>
+
+                            </div>
+                        </div>
+                        <!-- /.panel-body -->
+                    </div>
+                    <!-- /.panel -->
+                        
+                    <div class="col-lg-6">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            Pickup Time
+                        </div>
+                        <!-- /.panel-heading -->
+                        <div class="panel-body">
+                            <div class="flot-chart">
+                                                            <div id="morris-area-chart2"></div>
+
+                            </div>
+                        </div>
+                        <!-- /.panel-body -->
+                    </div>
+                
             </div>
                     
                     
@@ -319,7 +351,7 @@
       $("#arr").html(data.arrived);
       $("#match").html(data.match);
       $("#idle").html(data.idle);
-      $("#avgwait").html(data.avgWait);
+      $("#avgwait").html(data.avgWait + " min");
       $("#event").html(data.msg);
       $("#arrMsg").html(data.arrMsg);
         
@@ -333,12 +365,12 @@
       fillOpacity: 0.5
       }).addTo(mymap);
       
-      var circle = L.circle(data.mLoc, 30, {
+      var circle = L.circle(data.mLoc, 5, {
       color: 'black',
       fillOpacity: 0.2
       }).addTo(mymap);
       
-      var circle = L.circle(data.arrMsgLoc, 30, {
+      var circle = L.circle(data.arrMsgLoc, 5, {
       color: 'black',
       fillOpacity: 0.2
       }).addTo(mymap);
@@ -439,15 +471,29 @@
         });
     }
         
+ 
+        
+
+    var dis;
+    function disUpdate() {
+    $.getJSON("distance", function(json) {
+    distance.setData(json);
+        //console.log(json);
+    waitTime.setData(json);
+    });
+    } 
+        
+        
     $(function () {
     setInterval(currentTime, 500);
     setInterval(clearMap, 4999);
     setInterval(drawPassengers, 5000);
     setInterval(drawDrivers, 5000);
-    setInterval(drawPath, 1000);
-
+    setInterval(drawPath, 5000);
+    setInterval(disUpdate, 10000);
     });
-
+    
+  
     </script>
 
     <script>

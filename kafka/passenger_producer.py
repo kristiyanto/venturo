@@ -3,7 +3,7 @@
 # for the stream. Ideally, this would come from User.
 # Boundaries.csv contains information about the location boundaries for the generation.
 
-totalPassenger = 500
+totalPassenger = 11000
 # Once generated, the request then sent to Kafka.
 
 import csv
@@ -101,7 +101,8 @@ def generatePassenger(city, ID):
             'altdest2': att[2][1],
             'altdest2id': att[2][0],
             'origin': [curr_lat, curr_long],
-            'path': [[curr_lat, curr_long]]
+            'path': [[curr_lat, curr_long]],
+            'trip_distance': 0
           }
    
     q = es.get(index='passenger', doc_type='rolling', id=ID, ignore=[404, 400])
@@ -129,7 +130,7 @@ bound = loadBoundaries(boundaries_file)
 def main():
     print("Generating {} passengers...".format(totalPassenger))
     for n in xrange(totalPassenger):
-        city = random.choice(['CHI','NYC'])
+        city = random.choice(['CHI','CHI','CHI', 'CHI', 'NYC','NYC'])
         user = generatePassenger(city, random.randint(1,totalPassenger))
         if user:
             u_json = json.dumps(user).encode('utf-8')

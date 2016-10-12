@@ -83,6 +83,21 @@ def getPath(path):
         return (json.dumps({'path': res}))
     else:
         return json.dumps({'path': []})
+
+
+@app.route('/distance')
+def distance():
+    q = {'size': 20,
+        'query': { 'term': {'status': 'arrived'} },
+        'filter': {'range': { 'ctime': { 'gt': window }} 
+            },
+         "sort": [{"ctime": {"order": "desc"}}]
+        }
+    res = []
+    q = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
+    if q['hits']: res = json.dumps([i['_source'] for i in q['hits']['hits']])
+    return res
+
     
 @app.route('/lines')
 def lines():
@@ -204,6 +219,7 @@ def avgWait():
     else:
         res = "N/A"
     return res
+
 
 
 def matchMsg():

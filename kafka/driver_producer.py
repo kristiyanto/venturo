@@ -1,6 +1,6 @@
 # This is the script to populate driver's Data
 # {driver_id, time, curr_lat, curr_long, dest, load}
-total_drivers = 1000
+total_drivers = 4000
 
 
 import time
@@ -108,11 +108,11 @@ bound = loadBoundaries(boundaries_file)
 def main():
     print("Generating {} drivers".format(total_drivers))
     for n in range(total_drivers):
-        city = random.choice(['CHI','NYC'])
+        city = random.choice(['CHI','NYC','CHI','CHI','NYC'])
         driver = generateDriver(city)
         u_json = json.dumps(driver).encode('utf-8')
         key = json.dumps(driver['id']).encode('utf-8')
-        print('{}'.format(driver))
+        #print('{}'.format(driver))
         producer.send(b'drv', key, u_json)
     kafka.close()
 

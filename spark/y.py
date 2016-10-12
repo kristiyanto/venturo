@@ -92,13 +92,19 @@ def elapsedTime(t1, ctime):
 '''
 def appendPath(p, location, es):
     res = es.get(index='passenger', doc_type='rolling', id=p, ignore=[400,404])
+    def calcDistance(dest, location): 
+        return vincenty(Point(dest), Point(location)).miles
+
     if res['found']: 
-        res = res['_source']['path']
-        if (vincenty(Point(res[-1]), Point(location)).miles < 100): 
-            res.append(location)
-            q = '{{"doc": {}}}'.format(json.dumps({'path':res}))
+        path = res['_source']['path']
+        distance = calcDistance(location, path[-1]) + int(res['_source']['trip_distance'])
+        if (vincenty(Point(path[-1]), Point(location)).miles < 100): 
+            if location not in path: path.append(location)
+            q = '{{"doc": {}}}'.format(json.dumps({'path':path, 'trip_distance': distance}))
             es.update(index='passenger', doc_type='rolling', id=p, body=q)
             return True
+    
+        
     return False
 
     
@@ -161,7 +167,7 @@ def scanPassenger(location, p1, es):
             for i in [p['destinationid'],p['altdest1id'],p['altdest1id']]:
                 shoulds.append({'match': {'destinationid': i}})
                 shoulds.append({'match': {'altdest1id': i}}) 
-                shoulds.append({'match': {'altdest1id': i}}) 
+                shoulds.append({'match': {'altdestid2': i}}) 
     
             destinations = [p['destinationid'], p['altdest1id'], p['altdest2id']]
             geo_query = {"size": 1, 
@@ -172,7 +178,7 @@ def scanPassenger(location, p1, es):
 
                  "filter": {
                 "geo_distance": {
-                    "distance": '6km',
+                    "distance": '3km',
                "distance_type": "plane", 
                     "location": location }},
 
@@ -189,11 +195,34 @@ def scanPassenger(location, p1, es):
                   }}],
                         }
 
-
+    
     res = es.search(index='passenger', doc_type='rolling', body=geo_query, ignore=[400])
     return res['hits']['hits'][0]["_source"] if res['hits']['hits'] else False
 
+def newDestination(p1, p2, location):
+    p1Dest = [(p1['destination'], p1['destinationid']), (p1['altdest1'], p1['altdest1id']), \
+                  (p1['altdest2'], p1['altdest2id'])]
+    p2Dest = [(p2['destination'], p2['destinationid']), (p2['altdest1'], p2['altdest1id']), \
+                  (p2['altdest2'], p2['altdest2id'])]
+
+    dest1 = set([p1['destinationid'], p1['altdest1id'], p1['altdest2id']])  
+    dest2 = set([p2['destinationid'], p2['altdest1id'], p2['altdest2id']])
+
+    def distance(dest, location): 
+        return vincenty(Point(dest), Point(location)).miles
+
+    far = float("inf")
+    dest = (p2['destination'], p2['destinationid'])
     
+    for i in xrange(len(p1Dest)):
+        if (p1Dest[i][1] in list((dest1 & dest2))) and distance(p1Dest[i][0], location) < far:
+            far = distance(p1Dest[i][0], location)
+            dest = p1Dest[i]
+    
+    return dest
+        
+
+                  
 def assign(x):
     ctime = x['ctime']
     location = x['location']
@@ -307,8 +336,12 @@ def pickup(x):
                 _['location'] = shiftLocation(location)[1]
                 updatePassenger(p2, _, es)
                 appendPath(p2, location, es)
+                
+                newDest = newDestination(retrievePassenger(p1, es), retrievePassenger(p2, es), location)
 
-                    
+                dDoc['destination'] = newDest[0]
+                dDoc['destinationid'] = newDest[1]
+
             if p1:
                 _ = pDoc
                 _['location'] = shiftLocation(location)[0]
@@ -394,7 +427,8 @@ def updatePass(x):
         'altdest2' : x['altdest2'],
         'altdest2id' : x["altdest2id"],
         'status' : x['status'],
-        'path': [x['location']],  
+        'path': [x['location']],
+        'trip_distance' : x['trip_distance'],
     }
 
     p['ctime'] = convertTime(p['ctime'])
@@ -418,8 +452,6 @@ def bulkStore(rdd):
     es = Elasticsearch(cluster, port=9200)
     
     for x in rdd:
-        #p1 = x[2]
-        #p2 = x[3]
         res = es.update(index='driver', doc_type='rolling', id=x[1], body=x[4])
     
     
