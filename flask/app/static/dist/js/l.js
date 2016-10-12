@@ -13,7 +13,7 @@ var distance = Morris.Area({
     element: 'morris-area-chart',
     xkey: 'id',
     ykeys: ['trip_distance'],
-    labels: ['id', 'trip_distance'],
+    labels: ['name', 'trip_distance'],
     pointSize: 2,
     hideHover: 'auto',
     resize: true
@@ -23,7 +23,7 @@ var waitTime = Morris.Area({
     element: 'morris-area-chart2',
     xkey: 'id',
     ykeys: ['ptime'],
-    labels: ['id', 'ptime'],
+    labels: ['name', 'ptime'],
     pointSize: 2,
     hideHover: 'auto',
     resize: true

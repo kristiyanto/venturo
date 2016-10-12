@@ -87,7 +87,7 @@ def getPath(path):
 
 @app.route('/distance')
 def distance():
-    q = {'size': 20,
+    q = {'size': 10,
         'query': { 'term': {'status': 'arrived'} },
         'filter': {'range': { 'ctime': { 'gt': window }} 
             },
@@ -95,7 +95,9 @@ def distance():
         }
     res = []
     q = es.search(index='passenger', doc_type='rolling', body=q, ignore=[404, 400])
-    if q['hits']: res = json.dumps([i['_source'] for i in q['hits']['hits']])
+    if q['hits']: 
+        res = [ {'id': i['id'], 'trip_distance': i['trip_distance'], 'name': i['name'], 'ptime': i['ptime'] } for i in [i['_source'] for i in q['hits']['hits']]]
+        res = json.dumps(res)
     return res
 
     
