@@ -30,7 +30,7 @@ from geopy.distance import vincenty, Point
 #################################################################
 
 sc = SparkContext(appName="venturo")
-ssc = StreamingContext(sc, 10)
+ssc = StreamingContext(sc, 2)
 sc.setLogLevel("WARN")    
 
 
