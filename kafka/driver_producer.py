@@ -93,7 +93,7 @@ def generateDriver(city):
         driver_mapping = q['_source']
         driver_mapping['location'] = simulateTrip(driver_mapping['location'], driver_mapping['destination'])
     if q['found']:
-        isNotLastHour = datetime.now() - datetime.strptime("{}".format(q['_source']['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ') < timedelta(hours=1)
+        isNotLastHour =  datetime.strptime("{}".format(q['_source']['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ') < datetime.now() - timedelta(hours=1)
         
         driver_mapping['ctime'] = convertTime(driver_mapping['ctime'])
         if isNotLastHour: 

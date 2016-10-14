@@ -108,7 +108,7 @@ def generatePassenger(city, ID):
     q = es.get(index='passenger', doc_type='rolling', id=ID, ignore=[404, 400])
     if not q['found']: return pass_mapping
     
-    isNotLastHour = datetime.now() - datetime.strptime("{}".format(q['_source']['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ') < timedelta(hours=1)
+    isNotLastHour = datetime.strptime("{}".format(q['_source']['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ') < datetime.now() - timedelta(hours=1)
     if q['_source']['status'] in ['ontrip', 'pickup']: 
         return False
     if isNotLastHour:

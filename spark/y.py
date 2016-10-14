@@ -1,3 +1,13 @@
+#################################################################
+# VENTURO, a ride-sharing platform with common destinations
+# Demo: http://venturo.kristiyanto.me
+# Repo: http://github.com/kristiyanto/venturo
+# 
+# An Insight Data Engineering Project
+# Silicon Valley, Autumn 2016
+#
+#################################################################
+
 import os
 import json
 from pyspark import SparkContext
@@ -9,16 +19,24 @@ from datetime import datetime
 from dateutil import parser
 from geopy.distance import vincenty, Point
 
+
+#################################################################
+# To submit the job:
+#
 # park-submit --master local[*] --packages org.apache.spark:spark-streaming-kafka_2.10:1.6.1 --executor-memory 1G y.py
 # spark-submit --master spark://ec2-54-71-28-156.us-west-2.compute.amazonaws.com:7077 --packages org.apache.spark:spark-streaming-kafka_2.10:1.6.1 y.py
 # yarn application -kill APPID
 # SPARK_HOME_DIR/bin/spark-submit --master spark://ec2-54-71-28-156.us-west-2.compute.amazonaws.com:7077 --kill $DRIVER_ID
-
+#################################################################
 
 sc = SparkContext(appName="venturo")
 ssc = StreamingContext(sc, 2)
 sc.setLogLevel("WARN")    
 
+
+#################################################################
+# Helper Functions
+#################################################################
 
 '''
     Attempt to convert time from Kafka to Elasticsearch format.
@@ -39,12 +57,18 @@ def convertTime(ctime):
 '''
     Define is location is close to other location.
     
-    Input: [lat, long]  and [lat, long]
+    Input: [lat, long] and [lat, long]
     Output: True/False
 '''
 
 def isNearby(location, p):
     return True if (vincenty(Point(location), Point(p)).meters < 300) else False
+
+
+'''
+    Check if messages are invalid (e.g: mistmatch with previous record/
+    record non-exist).
+'''
 
 def sanityCheck(es, status, ctime, city, location, driver, name=None, p1=None, p2=None):
 
@@ -104,12 +128,11 @@ def appendPath(p, location, es):
             es.update(index='passenger', doc_type='rolling', id=p, body=q)
             return True
     
-        
     return False
 
     
 '''
-    Modify passanger's record.
+    Getter Setters
     
     Input: passangerID (str), data (json), elasticsearch
     Output: elastic's transaction output
@@ -133,11 +156,21 @@ def retrievePassenger(pID, es):
                    ignore=[404, 400])
     return p['_source'] if p['found'] else False
 
+
+'''
+    Shift location by 11 meters for display purposes.
+'''
 def shiftLocation(location):
             newLoc = [round(location[0] - 0.0001,4), round(location[1] - 0.0001,4)]
             newLoc_ = [round(location[0] + 0.0001,4), round(location[1] + 0.0001,4)]
             return (newLoc, newLoc_)
-    
+
+'''
+   Main query to find nearby available passengers.
+   
+   
+'''        
+        
 def scanPassenger(location, p1, es):
     geo_query = { "from" : 0, "size" : 1,
                  "query": {
@@ -199,6 +232,10 @@ def scanPassenger(location, p1, es):
     res = es.search(index='passenger', doc_type='rolling', body=geo_query, ignore=[400])
     return res['hits']['hits'][0]["_source"] if res['hits']['hits'] else False
 
+'''
+    Given 2 passengers, pick up which destination to go.
+'''
+
 def newDestination(p1, p2, location):
     p1Dest = [(p1['destination'], p1['destinationid']), (p1['altdest1'], p1['altdest1id']), \
                   (p1['altdest2'], p1['altdest2id'])]
@@ -219,9 +256,34 @@ def newDestination(p1, p2, location):
             far = distance(p1Dest[i][0], location)
             dest = p1Dest[i]
     
-    return dest
-        
+    return 
 
+'''
+    Connect and store information to ElasticSearch
+'''
+
+def bulkStore(rdd):
+    cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
+    es = Elasticsearch(cluster, port=9200)
+    
+    for x in rdd:
+        res = es.update(index='driver', doc_type='rolling', id=x[1], body=x[4])
+    
+    
+def sendToES(x):
+    cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
+    es = Elasticsearch(cluster, port=9200)
+    
+    res = es.update(index='driver', doc_type='rolling', id=x[1], body=x[4])
+
+        
+#################################################################
+# Main Functions
+#################################################################
+
+'''
+    Given an idle or driver with only 1 passenger, scan and assign a passenger.
+'''
                   
 def assign(x):
     ctime = x['ctime']
@@ -364,6 +426,11 @@ def pickup(x):
 
     return res
 
+'''
+    For driver with passengers, decide if a passenger arrive to their desitinations.
+'''
+
+
 def onride(x):
     city = x['city']
     ctime = convertTime(x['ctime'])
@@ -412,7 +479,11 @@ def onride(x):
         
     return res
         
-
+'''
+    Catch and store passenger information. If already exists, do nothing.
+'''
+    
+    
 def updatePass(x):
     p = {
         'city' : x['city'],
@@ -447,19 +518,9 @@ def updatePass(x):
 
     else: return(0, "{Welcome back, passenger.}")
 
-def bulkStore(rdd):
-    cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
-    es = Elasticsearch(cluster, port=9200)
-    
-    for x in rdd:
-        res = es.update(index='driver', doc_type='rolling', id=x[1], body=x[4])
-    
-    
-def sendToES(x):
-    cluster = ['ip-172-31-0-107', 'ip-172-31-0-100', 'ip-172-31-0-105', 'ip-172-31-0-106']
-    es = Elasticsearch(cluster, port=9200)
-    
-    res = es.update(index='driver', doc_type='rolling', id=x[1], body=x[4])
+#################################################################
+# SPARK FUNCTIONS
+#################################################################
 
 
 def main():
