@@ -1,0 +1,4 @@
+geopy
+elasticsearch
+kafka-python
+
