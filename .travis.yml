@@ -40,7 +40,3 @@ before_script:
 script:
   - pep8 --first `find pyexample -name "*.py"`
   - coverage run spark/y.py
-  - python setup.py build
-
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
