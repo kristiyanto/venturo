@@ -9,6 +9,36 @@ jdk:
   
 install:
   - pip install -r requirements.txt
+  - pip install pep8
   
+
+matrix:
+include:
+  # Spark 1.5.2
+  - jdk: openjdk7
+    python: 2.7
+    env: >
+      TEST_SPARK_VERSION=1.5.2
+      SPARK_HOME=`pwd`/thirdparty/spark-$TEST_SPARK_VERSION-bin-hadoop2.4
+      PYTHONPATH=$SPARK_HOME/python/:$PYTHONPATH
+  # Spark 1.6.1
+  - jdk: openjdk7
+    python: 2.7
+    env: >
+      TEST_SPARK_VERSION=1.6.1
+      SPARK_HOME=`pwd`/thirdparty/spark-$TEST_SPARK_VERSION-bin-hadoop2.4
+      PYTHONPATH=$SPARK_HOME/python/:$PYTHONPATH
+      
+before_script:
+  # Download Spark
+  - mkdir thirdparty
+  - curl -O http://apache.mirror.cdnetworks.com/spark/spark-$TEST_SPARK_VERSION/spark-$TEST_SPARK_VERSION-bin-hadoop2.4.tgz
+  - tar zxfC spark-$TEST_SPARK_VERSION-bin-hadoop2.4.tgz thirdparty
+
 script:
-  - spark/y.py
+  - pep8 --first `find pyexample -name "*.py"`
+  - coverage run spark/y.py
+  - python setup.py build
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
