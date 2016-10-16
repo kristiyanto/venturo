@@ -109,7 +109,7 @@ def generatePassenger(city, ID):
     if not q['found']: return pass_mapping
     
     isNotLastHour = datetime.strptime("{}".format(q['_source']['ctime']),'%Y-%m-%dT%H:%M:%S.%fZ') < datetime.now() - timedelta(hours=1)
-    if q['_source']['status'] in ['ontrip', 'pickup']: 
+    if q['_source']['status'] in ['ontrip', 'pickup'] and not isNotLastHour: 
         return False
     if isNotLastHour:
         pass_mapping['ctime']  = convertTime(pass_mapping['ctime'])

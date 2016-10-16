@@ -9,7 +9,7 @@ L.tileLayer('https://api.mapbox.com/styles/v1/kristiyanto/citktoe5o000e2iqxokgem
     accessToken: 'pk.eyJ1Ijoia3Jpc3RpeWFudG8iLCJhIjoiY2l0a3Q1b2VmMGNuaTJubnZjOWN3NWp0dSJ9.9en-5YLbMPvG7hnoGt35XA'
 }).addTo(mymap);
 
-var distance = Morris.Area({
+var distance = Morris.Bar({
     element: 'morris-area-chart',
     xkey: 'id',
     ykeys: ['trip_distance'],

@@ -30,7 +30,7 @@ from geopy.distance import vincenty, Point
 #################################################################
 
 sc = SparkContext(appName="venturo")
-ssc = StreamingContext(sc, 2)
+ssc = StreamingContext(sc, 8)
 sc.setLogLevel("WARN")    
 
 
@@ -63,8 +63,6 @@ def convertTime(ctime):
 
 def isNearby(location, p):
     return True if (vincenty(Point(location), Point(p)).meters < 300) else False
-
-
 '''
     Check if messages are invalid (e.g: mistmatch with previous record/
     record non-exist).
@@ -256,7 +254,7 @@ def newDestination(p1, p2, location):
             far = distance(p1Dest[i][0], location)
             dest = p1Dest[i]
     
-    return 
+    return dest
 
 '''
     Connect and store information to ElasticSearch
