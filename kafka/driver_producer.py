@@ -1,7 +1,25 @@
+#################################################################
+# VENTURO, a ride-sharing platform with common destinations
+# Demo: http://venturo.kristiyanto.me
+# Repo: http://github.com/kristiyanto/venturo
+# 
+# An Insight Data Engineering Project
+# Silicon Valley, Autumn 2016
+#
+#################################################################
+
+
 # This is the script to populate driver's Data
-# {driver_id, time, curr_lat, curr_long, dest, load}
+# For more detailed schema, check ../elasticsearch folder
+
 total_drivers = 4000
 
+
+
+
+#################################################################
+# SETUP
+#################################################################
 
 import time
 import json
@@ -31,6 +49,16 @@ kafka = KafkaClient(brokers)
 producer = KeyedProducer(kafka)
 es = Elasticsearch(cluster, port=9200)
 
+#################################################################
+# HELPER FUNCTIONS
+#################################################################
+
+'''
+    Convert time to match with ElasticSearch format
+    Input: time
+    Output: time
+'''
+
 def convertTime(tm):
     try:
         t = datetime.strptime("{}".format(tm),'%Y-%m-%dT%H:%M:%S.%fZ')
@@ -41,6 +69,16 @@ def convertTime(tm):
     return t
   
 
+'''
+    Load boundaries.csv
+    The file store information about the lat long boundaries 
+    where the driver/passenger should be placed on the map.
+    Input: filename.csv
+    Output: {city: [lat long], [lat long]}
+
+'''
+    
+    
 def loadBoundaries(boundaries_file):
 
     boundaries = {}
@@ -53,10 +91,26 @@ def loadBoundaries(boundaries_file):
     f.close()
     return boundaries
 
+
+'''
+    Randomly generate latlong position within given boundaries.
+    Input: City
+    Output: [lat, long]
+
+'''
+ 
 def randomLoc(id, city):
     bnd = bound[city]
     return [round(random.uniform(float(bnd[0]), float(bnd[2])),4),\
                 round(random.uniform(float(bnd[1]), float(bnd[3])),4)]
+
+'''
+    Generate new lat long position to simulate driving/moving trip
+    Input: (Destination [lat, long], CurrentLocation [lat, long]) 
+    Output: NewLocation [lat, long]
+
+'''
+
 
 def simulateTrip(c, d):
     #q = es.get(index='driver', doc_type='rolling', id=driverID)
@@ -65,6 +119,15 @@ def simulateTrip(c, d):
     la = Decimal(c[0]) + (((Decimal(d[0]) - Decimal(c[0]))/step_to_dest))
     lo = Decimal(c[1]) + (((Decimal(d[1]) - Decimal(c[1]))/step_to_dest))
     return [float(str(la)), float(str(lo))]
+
+'''
+    Generate a JSON message for new driver 
+    The script call ElasticSearch to check if the Driver already exsits.
+    If so, it will simulate the new location based on the destination/current location
+    
+    Input: city
+    Output: {id: , name: , ..}
+'''
 
 
 def generateDriver(city):
@@ -103,6 +166,7 @@ def generateDriver(city):
 
     return(driver_mapping)
 
+# Global variable for boundary file
 bound = loadBoundaries(boundaries_file)
 
 def main():
