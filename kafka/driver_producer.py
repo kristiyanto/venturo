@@ -12,7 +12,7 @@
 # This is the script to populate driver's Data
 # For more detailed schema, check ../elasticsearch folder
 
-total_drivers = 4000
+total_drivers = 6999
 
 
 
