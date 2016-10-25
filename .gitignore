@@ -8,3 +8,4 @@
 .ipynb_checkpoints
 metastore_db
 metastore_db/*
+/flask/app/static/dist/js/l.js
