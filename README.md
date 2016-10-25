@@ -14,7 +14,7 @@ Demo available at: http://venturo.kristiyanto.me
 
 Video Demo:
 
-[![Demo Video](media/youtube.png)](https://youtu.be/J_IAw4vt2Qo)
+[![Demo Video](media/youtube.png)](https://youtu.be/cY0R7rPKHoY)
 
 
 ## Data
