@@ -1,0 +1,10 @@
+purchase_type: on_demand
+subnet_id: [removed]
+num_instances: 1
+key_name: [removed]
+security_group_ids: [removed]
+instance_type: m3.large
+tag_name: daniel-cluster
+vol_size: 80
+role: master
+use_eips: true

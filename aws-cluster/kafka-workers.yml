@@ -1,0 +1,10 @@
+purchase_type: on_demand
+subnet_id: [removed]
+num_instances: 3
+key_name: [removed]
+security_group_ids: [removed]
+instance_type: m3.large
+tag_name: daniel-spark
+vol_size: 80
+role: worker
+use_eips: true
